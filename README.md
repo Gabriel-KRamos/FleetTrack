@@ -7,7 +7,7 @@ A gestão eficiente de frotas é essencial para empresas que dependem do transpo
 O objetivo principal do FleetTrack é oferecer uma solução acessível e eficiente para empresas que necessitam gerenciar seus veículos de forma dinâmica e automatizada. Com isso, busca-se reduzir custos operacionais, melhorar a logística e aumentar a segurança da frota.
 
 ## Justificativa
-Empresas que possuem frotas de veículos frequentemente enfrentam desafios como desperdício de combustível, manutenção inadequada e dificuldades na logística. A adoção de um sistema de rastreamento inteligente permite otimizar rotas, prevenir falhas mecânicas e melhorar a tomada de decisões com base em dados analíticos. Além disso, a implementação de alertas e relatórios personalizados contribui para um gerenciamento mais eficiente.
+Empresas que possuem frotas de veículos frequentemente enfrentam desafios como desperdício de combustível e dificuldades na logística. A adoção de um sistema de rastreamento inteligente permite otimizar rotas e melhorar a tomada de decisões com base em dados analíticos.
 
 ## Metodologia
 O desenvolvimento do FleetTrack seguiu um processo estruturado de engenharia de software, envolvendo levantamento de requisitos, modelagem do sistema e implementação. Foram utilizadas metodologias ágeis para garantir flexibilidade no desenvolvimento e entregas incrementais. Além disso, foram realizados testes de software para garantir a confiabilidade do sistema.
