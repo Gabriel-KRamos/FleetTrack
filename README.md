@@ -9,14 +9,5 @@ O objetivo principal do FleetTrack é oferecer uma solução acessível e eficie
 ## Justificativa
 Empresas que possuem frotas de veículos frequentemente enfrentam desafios como desperdício de combustível e dificuldades na logística. A adoção de um sistema de rastreamento inteligente permite otimizar rotas e melhorar a tomada de decisões com base em dados analíticos.
 
-## Metodologia
-O desenvolvimento do FleetTrack seguiu um processo estruturado de engenharia de software, envolvendo levantamento de requisitos, modelagem do sistema e implementação. Foram utilizadas metodologias ágeis para garantir flexibilidade no desenvolvimento e entregas incrementais. Além disso, foram realizados testes de software para garantir a confiabilidade do sistema.
-
-## Resultados Esperados
-O sistema FleetTrack permitirá um monitoramento detalhado da frota, proporcionando:
-- Redução de custos operacionais devido ao melhor planejamento de rotas;
-- Maior controle sobre manutenções e desempenho dos veículos;
-- Segurança aprimorada com alertas em tempo real;
-
 ## Conclusão
 O FleetTrack representa uma solução eficiente para empresas que buscam aprimorar sua gestão de frotas, proporcionando maior controle operacional e redução de custos. Seu desenvolvimento demonstra a importância da tecnologia na otimização logística e na segurança dos veículos.
