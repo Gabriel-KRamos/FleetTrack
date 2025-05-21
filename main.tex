@@ -7,135 +7,161 @@
 \begin{document}
 
 \begin{titlepage}
-    \centering
+\centering
 
-    {\Huge \textbf{Centro Universitário Católica de Santa Catarina}}\\[1.5cm]
-    {\Large Curso de Engenharia de Software}\\[4cm]
-    {\huge \textbf{FLEETTRACK}}\\[2cm]
-    {\Large \textbf{Gabriel Knopka Ramos}}\\[6cm]
-    {\Large Joinville, SC}\\[1.5cm]
-    {\Large 2025}
+{\Huge \textbf{Centro Universitário Católica de Santa Catarina}}\\[1.5cm]
+{\Large Curso de Engenharia de Software}\\[4cm]
+{\huge \textbf{FLEETTRACK}}\\[2cm]
+{\Large \textbf{Gabriel Knopka Ramos}}\\[6cm]
+{\Large Joinville, SC}\\[1.5cm]
+{\Large 2025}
 
-    \vfill
-
+\vfill
 
 \end{titlepage}
 
 \newpage
 
 \begin{abstract}
-    \noindent \textbf{Resumo:} Este trabalho apresenta o desenvolvimento de um Sistema de Controle de Frotas com Rastreamento GPS, denominado FleetTrack, voltado para a otimização da gestão de veículos em empresas que necessitam monitoramento em tempo real. O projeto tem como objetivo criar uma solução eficiente e acessível para empresas que buscam melhorar a administração de suas frotas, reduzindo custos operacionais, aprimorando a logística e aumentando a segurança dos veículos e motoristas.
+\noindent \textbf{Resumo:} Este trabalho apresenta o desenvolvimento de um Sistema de Controle de Frotas, denominado FleetTrack, voltado para tornar a gestão de veículos mais simples e eficiente. O projeto busca oferecer uma solução prática e acessível para empresas que desejam organizar melhor suas operações, reduzir custos e ter mais controle sobre suas atividades diárias.
 \end{abstract}
 
 \vspace{1cm}
 
 \section*{1 Introdução}
-A gestão eficiente de frotas tem se tornado um desafio crescente para empresas de transporte, logística e setores que dependem do deslocamento contínuo de veículos. O avanço da tecnologia permitiu o desenvolvimento de sistemas capazes de monitorar frotas em tempo real, utilizando rastreamento GPS para otimizar rotas, reduzir custos operacionais e aumentar a segurança dos motoristas e das cargas transportadas. Nesse contexto, este projeto propõe o desenvolvimento de um sistema de controle de frotas com rastreamento GPS, oferecendo uma solução tecnológica para empresas que necessitam de maior controle e eficiência na administração de seus veículos.
+Gerenciar frotas de veículos é um desafio constante para empresas de transporte, logística e outros setores que dependem desse tipo de operação. À medida que as demandas crescem, a necessidade de ferramentas modernas que facilitem essa tarefa também aumenta. Pensando nisso, este projeto propõe o desenvolvimento de um sistema focado em otimizar o dia a dia das empresas, promovendo mais organização, controle e eficiência.
 
-O objetivo principal deste projeto é desenvolver um sistema de controle de frotas com rastreamento GPS que permita o monitoramento em tempo real dos veículos, proporcionando maior eficiência na gestão e reduzindo custos operacionais. Além disso, objetiva-se oferecer funcionalidades complementares, como geração de relatórios, alertas de eventos críticos e análise de desempenho da frota. Dessa forma, espera-se que o sistema contribua para a melhoria da logística e do planejamento estratégico das empresas que adotarem essa solução.
+O objetivo é criar uma ferramenta que ajude na gestão de veículos de forma prática, oferecendo recursos como o cadastro de veículos e motoristas, geração de relatórios de uso e desempenho, além do envio de alertas para situações que exigem atenção. Com isso, espera-se que o FleetTrack se torne um aliado importante no planejamento e na execução de atividades relacionadas à frota, impactando positivamente a logística e os resultados estratégicos das empresas.
 
 \newpage
 
 \section*{2 Descrição do Projeto}
+O FleetTrack é pensado para empresas que precisam de uma gestão mais ágil e centralizada de suas frotas. A plataforma permitirá o registro de informações importantes sobre veículos e motoristas, a geração de relatórios de desempenho e o envio de alertas para situações críticas, tudo de maneira simples e acessível.
 
-O presente projeto tem como tema o desenvolvimento de um sistema de controle de frotas com rastreamento GPS, focado na otimização da gestão de veículos para empresas que necessitam monitoramento contínuo e eficiente. O sistema proposto permitirá o acompanhamento em tempo real da localização dos veículos, proporcionando maior controle sobre suas operações e facilitando a tomada de decisões estratégicas. A ferramenta será desenvolvida com funcionalidades voltadas para o monitoramento da frota, geração de relatórios e envio de alertas para eventos críticos, visando aprimorar a logística e a segurança dos transportes.
+Muitas empresas enfrentam dificuldades como falta de dados consolidados, dificuldade de organizar as rotas, altos custos com operações ineficientes e consumo excessivo de combustível. Além disso, a ausência de um sistema dedicado pode comprometer a segurança e o planejamento. A proposta do FleetTrack é justamente enfrentar esses desafios, oferecendo uma solução que melhore o acompanhamento das operações, ajude a otimizar trajetos e promova um uso mais inteligente dos recursos.
 
-O projeto busca resolver diversos problemas enfrentados por empresas que gerenciam frotas de veículos. Entre os principais desafios, destacam-se a dificuldade de monitoramento em tempo real, a falta de dados precisos sobre o desempenho da frota, o alto custo operacional devido à ineficiência de rotas e ao consumo excessivo de combustível, além da ausência de um controle centralizado para a gestão dos veículos. Com a implementação do sistema, pretende-se oferecer uma solução tecnológica que permita acompanhar a localização dos veículos, reduzir desperdícios, otimizar trajetos e aumentar a segurança tanto para motoristas quanto para a carga transportada.
-
-No entanto, algumas limitações foram estabelecidas para este projeto. O sistema não abrangerá funcionalidades de manutenção preditiva dos veículos, não incluirá integração com sensores físicos embarcados para diagnóstico mecânico e não terá um módulo específico para análise de desempenho de motoristas baseado em comportamento ao volante. Além disso, a solução será desenvolvida para frotas terrestres, não sendo aplicável para meios de transporte aéreo ou marítimo. Dessa forma, o escopo do projeto se concentra na gestão de frotas rodoviárias, priorizando a eficiência operacional e o monitoramento por GPS.
+Vale ressaltar que o projeto possui limitações: ele não incluirá funcionalidades de manutenção preditiva dos veículos nem integração com sensores mecânicos. O foco é atender exclusivamente a frotas terrestres, sem considerar operações aéreas ou marítimas. Assim, concentramos os esforços na eficiência operacional e na melhoria do suporte estratégico às empresas.
 
 \newpage
 
-
 \section*{3 Especificação Técnica}
+Este projeto propõe a criação de um sistema de gestão de frotas que prioriza a organização e a eficiência, voltado para empresas que precisam de maior controle sobre seus veículos e operações.
 
-Este projeto tem como objetivo o desenvolvimento de um sistema de controle de frotas com rastreamento via GPS, destinado a empresas que necessitam de monitoramento contínuo e centralizado de seus veículos. O sistema permitirá o rastreamento em tempo real, proporcionando uma visão detalhada da localização dos veículos, a fim de otimizar a gestão da frota e melhorar a tomada de decisões. Além disso, contará com funcionalidades avançadas de geração de relatórios, que oferecerão informações valiosas sobre o desempenho da frota, consumo de combustível, tempo de inatividade e manutenção dos veículos. A otimização de rotas será um dos recursos-chave do sistema, visando aumentar a eficiência das operações, reduzir custos e melhorar a produtividade. O sistema será projetado para ser escalável, podendo atender tanto pequenas frotas quanto grandes empresas com centenas de veículos.
+Entre as principais funcionalidades estão: cadastro de veículos e motoristas, visualização de dados operacionais, geração de relatórios detalhados sobre a frota e alertas para eventos importantes. O objetivo é oferecer uma plataforma que seja prática, segura e que ajude as empresas a tomarem decisões mais assertivas.
 
 \subsection*{3.1 Requisitos de Software}
 
 \subsubsection*{Requisitos Funcionais (RF)}
 \begin{itemize}
-    \item RF01: Permitir o cadastro e gerenciamento de veículos da frota.
-    \item RF02: Rastrear a localização dos veículos em tempo real por meio de GPS.
-    \item RF03: Exibir a posição dos veículos em um mapa.
-    \item RF04: Permitir a criação e o gerenciamento de usuários não administradores.
-    \item RF05: Fornecer um painel administrativo para gerenciar frotas, motoristas e rotas.
+\item RF01: Permitir o cadastro e gerenciamento de veículos da frota.
+\item RF02: Permitir o registro de motoristas e suas informações.
+\item RF03: Gerar relatórios de desempenho da frota.
+\item RF04: Permitir a criação e o gerenciamento de usuários com diferentes níveis de acesso.
+\item RF05: Fornecer um painel administrativo para acompanhamento geral da operação.
 \end{itemize}
 
 \subsubsection*{Requisitos Não Funcionais (RNF)}
 \begin{itemize}
-    \item RNF01: O sistema deve ser acessível via web.
-    \item RNF02: A comunicação entre o GPS e o servidor deve ocorrer com baixa latência.
-    \item RNF03: O sistema deve armazenar dados de rastreamento por pelo menos seis meses.
-    \item RNF04: A interface deve ser intuitiva e de fácil uso para diferentes perfis de usuários.
-    \item RNF05: O sistema deve notificar eventos críticos, como desvios de rota ou paradas não autorizadas.
-    \item RNF06: O sistema deve gerar relatórios sobre trajetos percorridos, consumo de combustível e tempo de deslocamento.
+\item RNF01: O sistema deve ser acessível via web.
+\item RNF02: A plataforma deve garantir respostas rápidas às solicitações dos usuários.
+\item RNF03: Os dados armazenados devem ser mantidos por no mínimo seis meses.
+\item RNF04: A interface do sistema deve ser intuitiva e amigável.
+\item RNF05: O sistema deve gerar notificações em casos de eventos críticos, como atrasos ou desvios de padrão.
+\item RNF06: O sistema deve possibilitar a exportação de relatórios de desempenho operacional.
 \end{itemize}
 
 \subsection*{3.2 Considerações de Design}
-
-O design do sistema será planejado para garantir escalabilidade e facilidade de manutenção. Durante o desenvolvimento, serão analisadas diferentes alternativas arquiteturais, com a abordagem baseada em microsserviços sendo considerada para possibilitar modularidade e melhor gerenciamento de cargas.
+A arquitetura do sistema será pensada para garantir escalabilidade, alta disponibilidade e facilidade de manutenção. Será considerada a abordagem de microsserviços para modularizar as funcionalidades, garantindo uma estrutura robusta e flexível.
 
 O sistema será composto por três camadas principais:
 \begin{itemize}
-    \item \textbf{Frontend:} Responsável pela interface do usuário, permitindo acesso ao sistema via navegador.
-    \item \textbf{Backend:} Processará requisições, armazenará dados e gerenciará a lógica de negócio.
-    \item \textbf{Banco de Dados:} Guardará informações sobre os veículos, trajetos, eventos críticos e usuários.
+\item \textbf{Frontend:} Responsável pela interação com o usuário via navegador.
+\item \textbf{Backend:} Gerenciará a lógica de negócios e o processamento de dados.
+\item \textbf{Banco de Dados:} Armazenará informações sobre veículos, motoristas, rotas e relatórios.
 \end{itemize}
 
 \subsubsection*{Padrões de Arquitetura}
-O sistema será estruturado utilizando o padrão MVC (Model-View-Controller) no backend para organizar a lógica do software e facilitar a manutenção. Além disso, o uso de APIs RESTful permitirá a comunicação eficiente entre o frontend e o backend.
+Será utilizado o padrão MVC (Model-View-Controller) para organizar o backend, favorecendo a separação de responsabilidades. A comunicação entre as camadas será feita por meio de APIs RESTful.
 
 \subsubsection*{Modelos C4}
-A arquitetura do sistema será detalhada por meio do modelo C4, abordando os seguintes níveis:
+A estrutura do sistema será descrita utilizando o Modelo C4, abrangendo:
 \begin{itemize}
-    \item \textbf{Contexto:} Definição de como o sistema interage com usuários e serviços externos.
-    \item \textbf{Contêineres:} Descrição dos serviços e módulos principais do sistema.
-    \item \textbf{Componentes:} Detalhamento dos elementos internos dos contêineres e suas funções.
-    \item \textbf{Código:} Representação detalhada da implementação dos módulos principais.
+\item \textbf{Contexto:} Visão geral da interação entre o sistema, usuários e serviços externos.
+\item \textbf{Contêineres:} Organização dos principais componentes do sistema.
+\item \textbf{Componentes:} Detalhamento dos serviços e módulos internos.
+\item \textbf{Código:} Estrutura de implementação das principais funcionalidades.
 \end{itemize}
 
 \subsection*{3.3 Stack Tecnológica}
 
 \subsubsection*{Linguagens de Programação:}
 \begin{itemize}
-    \item \textbf{Frontend:} React.js para desenvolvimento do frontend.
-    \item \textbf{Backend:} Go para manipulação eficiente de dados e processamento de requisições.
-    \item \textbf{Banco de Dados:} MySQL para armazenamento relacional estruturado.
+\item \textbf{Frontend:} Django Templates (HTML, CSS, JavaScript) para renderização dinâmica no lado do servidor.
+\item \textbf{Backend:} Django (Python) para desenvolvimento da aplicação.
+\item \textbf{Banco de Dados:} MySQL para armazenamento estruturado de informações.
 \end{itemize}
 
 \subsubsection*{Ferramentas de Desenvolvimento e Gestão de Projeto:}
 \begin{itemize}
-    \item Git/GitHub para versionamento e colaboração no código.
-    \item Postman para testes de API.
+\item Git/GitHub para controle de versão e colaboração.
+\item Postman para testes de APIs.
+\item Docker para containerização e ambiente replicável.
 \end{itemize}
 
 \subsection*{3.4 Considerações de Segurança}
 
-A segurança do sistema será tratada com prioridade para evitar vulnerabilidades e proteger os dados sensíveis. Algumas das práticas adotadas incluem:
+A segurança será um ponto central no desenvolvimento do sistema. Algumas medidas previstas:
 \begin{itemize}
-    \item \textbf{Autenticação e autorização:} Implementação de autenticação baseada em JWT (JSON Web Token) para controle de acessos.
-    \item \textbf{Prevenção contra ataques:} Proteção contra SQL Injection, Cross-Site Scripting (XSS) e Cross-Site Request Forgery (CSRF).
+\item \textbf{Autenticação e autorização:} Controle de acesso utilizando Django Authentication com JWT para APIs.
+\item \textbf{Proteção contra vulnerabilidades:} Medidas para evitar ataques como SQL Injection, Cross-Site Scripting (XSS) e Cross-Site Request Forgery (CSRF).
 \end{itemize}
 
 \newpage
 
 \section*{4 PRÓXIMOS PASSOS}
+Para garantir um desenvolvimento organizado e validado em todas as fases do projeto, os próximos passos estão estruturados conforme descrito a seguir:
+
+\subsection{Criação de Mockups e Fluxos de Navegação}
+\begin{itemize}
+    \item Elaboração dos mockups das telas principais do sistema.
+    \item Definição dos fluxos de navegação entre as páginas.
+\end{itemize}
+
+\subsection{Desenvolvimento de Protótipo}
+\begin{itemize}
+    \item Implementação de uma versão inicial com funcionalidades básicas.
+    \item Testes preliminares com foco na navegação e fluxo de dados.
+    \item Correção de eventuais falhas de usabilidade ou lógica.
+\end{itemize}
+
+\subsection{Implementação dos Módulos}
+\begin{itemize}
+    \item Desenvolvimento dos principais componentes do sistema:
+    \begin{itemize}
+        \item Cadastro de motoristas e veículos;
+        \item Gerenciamento de viagens e notificações;
+        \item Emissão de relatórios operacionais.
+    \end{itemize}
+    \item Aplicação de boas práticas de segurança e desempenho.
+\end{itemize}
+
+\subsection{Testes e Validações}
+\begin{itemize}
+    \item Realização de testes unitários e de integração.
+    \item Validação de funcionalidades conforme requisitos do projeto.
+    \item Ajustes com base em feedback dos testes.
+\end{itemize}
 
 \newpage
 
 \section*{Referências}
-
 \begin{itemize}
-    \item \textbf{React.js.} React - A JavaScript library for building user interfaces. Disponível em: \url{https://reactjs.org/}. Acesso em: 12 fev. 2025.
-    \item \textbf{Leaflet.js.} Leaflet - JavaScript library for interactive maps. Disponível em: \url{https://leafletjs.com/}. Acesso em: 25 mar. 2025.
-    \item \textbf{Mysql.} Mysql: The world's most advanced open source relational database. Disponível em: \url{https://www.mysql.com}. Acesso em: 8 abr. 2025.
-    \item \textbf{JWT.io.} JWT (JSON Web Token) Introduction. Disponível em: \url{https://jwt.io/}. Acesso em: 19 mai. 2025.
-    \item \textbf{Docker.} Docker - Empowering developers to write, test and deploy code anywhere. Disponível em: \url{https://www.docker.com/}. Acesso em: 3 jun. 2025.
-    \item \textbf{GitHub.} GitHub - Git repository hosting service. Disponível em: \url{https://github.com/}. Acesso em: 29 jul. 2025.
-    \item \textbf{Go Documentation.} The Go Programming Language Documentation. Disponível em: \url{https://golang.org/doc/}. Acesso em: 14 set. 2025.
-    \item \textbf{Postman.} Postman - API platform for building and using APIs. Disponível em: \url{https://www.postman.com/}. Acesso em: 20 nov. 2025.
+\item \textbf{Django.} The web framework for perfectionists with deadlines. Disponível em: \url{https://www.djangoproject.com}. Acesso em: 14 mai. 2025.
+\item \textbf{MySQL.} MySQL: The world's most advanced open source relational database. Disponível em: \url{https://www.mysql.com}. Acesso em: 8 abr. 2025.
+\item \textbf{JWT.io.} JWT (JSON Web Token) Introduction. Disponível em: \url{https://jwt.io}. Acesso em: 19 mai. 2025.
+\item \textbf{Docker.} Docker - Empowering developers to write, test and deploy code anywhere. Disponível em: \url{https://www.docker.com}. Acesso em: 3 jun. 2025.
+\item \textbf{GitHub.} GitHub - Git repository hosting service. Disponível em: \url{https://github.com}. Acesso em: 29 jul. 2025.
+\item \textbf{Postman.} Postman - API platform for building and using APIs. Disponível em: \url{https://www.postman.com}. Acesso em: 20 nov. 2025.
 \end{itemize}
-
 
 \end{document}
