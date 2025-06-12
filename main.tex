@@ -1,8 +1,10 @@
 \documentclass[12pt]{article}
+\usepackage{float}
 \usepackage[utf8]{inputenc}
 \usepackage[brazil]{babel}
 \usepackage{graphicx}
 \usepackage{url}
+\renewcommand{\labelitemiii}{•}      
 
 \begin{document}
 
@@ -28,14 +30,17 @@
 
 \vspace{1cm}
 
-\section*{1 Introdução}
-Gerenciar frotas de veículos é um desafio constante para empresas de transporte, logística e outros setores que dependem desse tipo de operação. À medida que as demandas crescem, a necessidade de ferramentas modernas que facilitem essa tarefa também aumenta. Pensando nisso, este projeto propõe o desenvolvimento de um sistema focado em otimizar o dia a dia das empresas, promovendo mais organização, controle e eficiência.
+\section{introdução}
+\noindent \textbf{Contexto:} A gestão de frotas é uma atividade fundamental para empresas que dependem do transporte de mercadorias ou prestação de serviços. O controle eficiente dos veículos e motoristas, bem como o acompanhamento das manutenções, são fatores essenciais para garantir segurança, reduzir custos operacionais e otimizar a logística.
 
-O objetivo é criar uma ferramenta que ajude na gestão de veículos de forma prática, oferecendo recursos como o cadastro de veículos e motoristas, geração de relatórios de uso e desempenho, além do envio de alertas para situações que exigem atenção. Com isso, espera-se que o FleetTrack se torne um aliado importante no planejamento e na execução de atividades relacionadas à frota, impactando positivamente a logística e os resultados estratégicos das empresas.
+\noindent \textbf{Justificativa:} A criação de uma ferramenta especializada para a gestão de veículos se mostra altamente relevante no campo da engenharia de software, pois oferece uma solução tecnológica capaz de automatizar processos, reduzir falhas humanas e melhorar a tomada de decisão. O sistema proposto busca atender a essa necessidade, alinhando-se às boas práticas de desenvolvimento e ao uso estratégico de tecnologias para resolver problemas reais.
+
+\noindent \textbf{Objetivos:} O objetivo principal do projeto é criar uma ferramenta que ajude na gestão de veículos de forma prática, oferecendo recursos como o cadastro de veículos e motoristas, geração de relatórios de uso e desempenho, além do envio de alertas para situações que exigem atenção. Com isso, espera-se que o FleetTrack se torne um aliado importante no planejamento e na execução de atividades relacionadas à frota, impactando positivamente a logística e os resultados estratégicos das empresas.
 
 \newpage
 
-\section*{2 Descrição do Projeto}
+\section{descrição do projeto}
+
 O FleetTrack é pensado para empresas que precisam de uma gestão mais ágil e centralizada de suas frotas. A plataforma permitirá o registro de informações importantes sobre veículos e motoristas, a geração de relatórios de desempenho e o envio de alertas para situações críticas, tudo de maneira simples e acessível.
 
 Muitas empresas enfrentam dificuldades como falta de dados consolidados, dificuldade de organizar as rotas, altos custos com operações ineficientes e consumo excessivo de combustível. Além disso, a ausência de um sistema dedicado pode comprometer a segurança e o planejamento. A proposta do FleetTrack é justamente enfrentar esses desafios, oferecendo uma solução que melhore o acompanhamento das operações, ajude a otimizar trajetos e promova um uso mais inteligente dos recursos.
@@ -44,55 +49,204 @@ Vale ressaltar que o projeto possui limitações: ele não incluirá funcionalid
 
 \newpage
 
-\section*{3 Especificação Técnica}
+\section{especificação técnica}
+
 Este projeto propõe a criação de um sistema de gestão de frotas que prioriza a organização e a eficiência, voltado para empresas que precisam de maior controle sobre seus veículos e operações.
 
 Entre as principais funcionalidades estão: cadastro de veículos e motoristas, visualização de dados operacionais, geração de relatórios detalhados sobre a frota e alertas para eventos importantes. O objetivo é oferecer uma plataforma que seja prática, segura e que ajude as empresas a tomarem decisões mais assertivas.
 
-\subsection*{3.1 Requisitos de Software}
 
-\subsubsection*{Requisitos Funcionais (RF)}
+\subsection{requisitos de software}
+   \textbf{3.1.1 Requisitos funcionais (rf)}
 \begin{itemize}
-\item RF01: Permitir o cadastro e gerenciamento de veículos da frota.
-\item RF02: Permitir o registro de motoristas e suas informações.
-\item RF03: Gerar relatórios de desempenho da frota.
-\item RF04: Permitir a criação e o gerenciamento de usuários com diferentes níveis de acesso.
-\item RF05: Fornecer um painel administrativo para acompanhamento geral da operação.
-\end{itemize}
+    \item \textbf{RF1 - Cadastro e Organização de Veículos}
+    \begin{itemize}
+        \item RF1.1: Permitir o cadastro de veículos, com informações como: placa, modelo, ano de fabricação, capacidade e status operacional.
+        \item RF1.2: Permitir o cadastro de informações adicionais sobre o estado de manutenção do veículo:
+        \begin{itemize}
+            \item Saúde dos pneus.
+            \item Data e quilometragem da última troca de óleo.
+            \item Quilometragem atual.
+            \item Data e descrição da última revisão mecânica.
+            \item Data prevista para próxima manutenção preventiva.
+        \end{itemize}
+        \item RF1.3: Permitir o cadastro de destinos.
+        \item RF1.4: Atribuir um destino ou rota específica a um veículo.
+        \item RF1.5: Permitir a atualização de informações de veículos cadastrados.
+        \item RF1.6: Permitir a exclusão ou desativação de veículos fora de operação.
+    \end{itemize}
 
-\subsubsection*{Requisitos Não Funcionais (RNF)}
+    \item \textbf{RF2 - Cadastro e Organização de Motoristas}
+
+    \begin{itemize}
+        \item RF02.1: Permitir o cadastro de motoristas com informações pessoais, documentação e histórico de viagens.
+        \item RF2.2: Permitir a atualização de informações dos motoristas.
+        \item RF2.3: Permitir a exclusão ou desativação de motoristas inativos.
+    \end{itemize}
+
+    \item \textbf{RF3 - Monitoramento e Relatórios Operacionais}
+
+    \begin{itemize}
+        \item RF3.1: Permitir a geração de relatórios de desempenho por veículo e motorista.
+        \item RF3.2: Exibir relatórios com métricas como:
+        \begin{itemize}
+            \item Quilometragem percorrida.
+            \item Número de viagens realizadas.
+            \item Consumo médio de combustível.
+            \item Estado atual dos componentes do veículo.
+            \item Proximidade das próximas manutenções.
+        \end{itemize}
+        \item RF3.3: Ao atribuir uma viagem a um veículo, exibir uma previsão de desgaste, considerando:
+        \begin{itemize}
+            \item Quilometragem estimada da viagem.
+            \item Impacto na saúde dos pneus.
+            \item Aproximação de revisões, trocas de óleo e outros itens críticos.
+        \end{itemize}
+        \item RF3.4: Permitir exportação dos relatórios.
+    \end{itemize}
+
+    \item \textbf{RF4 - Gestão de Usuários e Controle de Acesso}
+
+    \begin{itemize}
+        \item RF4.1: Implementar sistema de autenticação com credenciais individuais.
+        \item RF4.2: Criar diferentes níveis de acesso.
+    \end{itemize}
+
+    \item \textbf{RF5 - Painel Administrativo e Alertas}
+
+    \begin{itemize}
+        \item RF5.1: Disponibilizar um painel com visão geral das operações:
+        \begin{itemize}
+            \item Quantidade de veículos ativos.
+            \item Motoristas disponíveis.
+            \item Viagens em andamento.
+            \item Status de manutenção dos veículos.
+        \end{itemize}
+        \item RF5.2: Implementar sistema de alertas automáticos para eventos críticos:
+        \begin{itemize}
+            \item Aproximação da data de revisão, troca de óleo ou necessidade de troca de pneus.
+        \end{itemize}
+    \end{itemize}
+\end{itemize}
+\begin{figure}[!hbtp]
+    \centering
+    \includegraphics[width=1.2\linewidth]{UML1FleetTrack.png}
+    \caption{3.0 UML Administrador}
+    \label{fig:uml-admin}
+\end{figure}
+\begin{figure}[!htp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{UML2FleetTrack.png}
+    \caption{3.0 UML Motorista}
+    \label{fig:uml-motorista}
+\end{figure}
+
+\newpage
+\textbf{3.1.2 Requisitos Não Funcionais}
 \begin{itemize}
 \item RNF01: O sistema deve ser acessível via web.
 \item RNF02: A plataforma deve garantir respostas rápidas às solicitações dos usuários.
 \item RNF03: Os dados armazenados devem ser mantidos por no mínimo seis meses.
 \item RNF04: A interface do sistema deve ser intuitiva e amigável.
 \item RNF05: O sistema deve gerar notificações em casos de eventos críticos, como atrasos ou desvios de padrão.
-\item RNF06: O sistema deve possibilitar a exportação de relatórios de desempenho operacional.
 \end{itemize}
 
-\subsection*{3.2 Considerações de Design}
-A arquitetura do sistema será pensada para garantir escalabilidade, alta disponibilidade e facilidade de manutenção. Será considerada a abordagem de microsserviços para modularizar as funcionalidades, garantindo uma estrutura robusta e flexível.
+\subsection{Considerações de design}
 
-O sistema será composto por três camadas principais:
+\subsubsection*{3.2.1 Discussão sobre as escolhas de design}
+
+Durante o planejamento do FleetTrack, foram consideradas diversas alternativas de design para garantir uma solução escalável, segura e de fácil manutenção. A adoção de uma arquitetura baseada em três camadas (frontend, backend e banco de dados) foi preferida devido à sua simplicidade e eficiência em projetos. 
+
+Inicialmente, cogitou-se o uso de uma abordagem monolítica, pela facilidade de desenvolvimento e implantação, especialmente em projetos acadêmicos. Contudo, optou-se pela modularização através de microsserviços, visando maior escalabilidade e isolamento de falhas, facilitando a manutenção e futuras expansões.
+
+O padrão MVC (Model-View-Controller) foi escolhido para o backend devido à sua ampla adoção, clareza na separação de responsabilidades e compatibilidade nativa com o framework Django.
+
+\subsubsection*{3.2.2 Visão Inicial da Arquitetura}
+
+A arquitetura do FleetTrack será composta pelos seguintes componentes principais e suas respectivas interconexões:
+
 \begin{itemize}
-\item \textbf{Frontend:} Responsável pela interação com o usuário via navegador.
-\item \textbf{Backend:} Gerenciará a lógica de negócios e o processamento de dados.
-\item \textbf{Banco de Dados:} Armazenará informações sobre veículos, motoristas, rotas e relatórios.
+    \item \textbf{Frontend:} Interface web desenvolvida com Django Templates, HTML, CSS e JavaScript, responsável pela interação com os usuários. Comunica-se com o backend via chamadas HTTP.
+    \item \textbf{Backend:} API e lógica de negócios desenvolvida em Django, responsável pelo processamento de dados, regras de negócio e geração de relatórios.
+    \item \textbf{Banco de Dados:} MySQL, destinado ao armazenamento persistente de informações relativas aos veículos, motoristas, trajetos e relatórios.
+    \item \textbf{Serviço de Autenticação:} Implementação de autenticação e autorização baseada em JWT (JSON Web Token), garantindo segurança na troca de informações.
 \end{itemize}
 
-\subsubsection*{Padrões de Arquitetura}
-Será utilizado o padrão MVC (Model-View-Controller) para organizar o backend, favorecendo a separação de responsabilidades. A comunicação entre as camadas será feita por meio de APIs RESTful.
+A comunicação entre frontend e backend será realizada via APIs RESTful, utilizando o padrão HTTP, enquanto o backend se conecta ao banco de dados através do ORM (Object-Relational Mapping) do Django.
 
-\subsubsection*{Modelos C4}
-A estrutura do sistema será descrita utilizando o Modelo C4, abrangendo:
+\subsubsection*{3.2.3 Padrões de Arquitetura}
+
+O projeto adota os seguintes padrões arquiteturais:
+
 \begin{itemize}
-\item \textbf{Contexto:} Visão geral da interação entre o sistema, usuários e serviços externos.
-\item \textbf{Contêineres:} Organização dos principais componentes do sistema.
-\item \textbf{Componentes:} Detalhamento dos serviços e módulos internos.
-\item \textbf{Código:} Estrutura de implementação das principais funcionalidades.
+    \item \textbf{MVC (Model-View-Controller):} Para organizar a estrutura do backend, separando claramente as camadas de modelo de dados, lógica de negócio e apresentação.
+    \item \textbf{RESTful APIs:} Para padronizar a comunicação entre frontend e backend, facilitando a integração com outros sistemas.
 \end{itemize}
 
-\subsection*{3.3 Stack Tecnológica}
+\subsubsection*{3.2.4 Modelos C4}
+
+Para uma melhor compreensão da arquitetura do FleetTrack, utilizamos o Modelo C4, que descreve o sistema em quatro níveis de abstração:
+
+\paragraph{Contexto}
+
+O FleetTrack atua como um sistema de gestão de frotas acessado via web por diferentes perfis de usuários: administradores, operadores e motoristas.
+
+\begin{itemize}
+    \item \textbf{Usuários:} Administradores (gestão e relatórios), motoristas (visualização de itinerários).
+\end{itemize}
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.7\linewidth]{C4Contexto.png}
+    \caption{3.2 C4 Contexto}
+    \label{fig::C4 Contexto}
+\end{figure}
+ \newpage
+ 
+\paragraph{Contêineres}
+O sistema é dividido em três contêineres principais:
+
+\begin{itemize}
+    \item \textbf{Frontend Web:} Aplicação baseada em Django Templates com HTML/CSS/JS. Responsável por renderizar páginas e interagir com o backend via requisições HTTP.
+    \item \textbf{Backend API:} Serviço em Django, que expõe endpoints RESTful, processa as regras de negócio, autentica usuários via JWT e interage com o banco de dados.
+    \item \textbf{Banco de Dados Relacional:} MySQL, responsável pelo armazenamento persistente e seguro dos dados da frota.
+\end{itemize}
+
+\paragraph{Componentes}
+
+Cada contêiner possui componentes específicos, conforme descrito a seguir:
+
+\begin{itemize}
+    \item \textbf{Frontend:}
+    \begin{itemize}
+        \item Sistema de autenticação e login.
+        \item Painel administrativo com visualização de indicadores.
+        \item Telas de cadastro e edição de motoristas e veículos.
+    \end{itemize}
+    \newpage
+    \item \textbf{Backend:}
+    \begin{itemize}
+        \item Serviço de autenticação e geração de tokens JWT.
+        \item Módulo de cadastro de motoristas e veículos.
+        \item Módulo de geração de relatórios.
+        \item Sistema de alertas e notificações.
+    \end{itemize}
+    
+    \item \textbf{Banco de Dados:}
+    \begin{itemize}
+        \item Tabela \texttt{usuarios}: armazena dados de autenticação e perfis.
+        \item Tabela \texttt{veiculos}: informações detalhadas sobre os veículos.
+        \item Tabela \texttt{motoristas}: dados cadastrais e de habilitação.
+        \item Tabela \texttt{rotas}: armazena dados de rotas utilizadas.
+    \end{itemize}
+\end{itemize}
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.9\linewidth]{C4Componentes.png}
+    \caption{3.2 C4 Componentes}
+    \label{fig::C4 Componentes}
+\end{figure}
+ \newpage
+\subsection{Stack Tecnológica}
 
 \subsubsection*{Linguagens de Programação:}
 \begin{itemize}
@@ -108,7 +262,7 @@ A estrutura do sistema será descrita utilizando o Modelo C4, abrangendo:
 \item Docker para containerização e ambiente replicável.
 \end{itemize}
 
-\subsection*{3.4 Considerações de Segurança}
+\subsection{Considerações de Segurança}
 
 A segurança será um ponto central no desenvolvimento do sistema. Algumas medidas previstas:
 \begin{itemize}
@@ -118,23 +272,24 @@ A segurança será um ponto central no desenvolvimento do sistema. Algumas medid
 
 \newpage
 
-\section*{4 PRÓXIMOS PASSOS}
+\section{Próximos Passos}
+
 Para garantir um desenvolvimento organizado e validado em todas as fases do projeto, os próximos passos estão estruturados conforme descrito a seguir:
 
-\subsection{Criação de Mockups e Fluxos de Navegação}
+\subsection{Criação de mockups e fluxos de navegação}
 \begin{itemize}
     \item Elaboração dos mockups das telas principais do sistema.
     \item Definição dos fluxos de navegação entre as páginas.
 \end{itemize}
 
-\subsection{Desenvolvimento de Protótipo}
+\subsection{Desenvolvimento de protótipo}
 \begin{itemize}
     \item Implementação de uma versão inicial com funcionalidades básicas.
     \item Testes preliminares com foco na navegação e fluxo de dados.
     \item Correção de eventuais falhas de usabilidade ou lógica.
 \end{itemize}
 
-\subsection{Implementação dos Módulos}
+\subsection{Implementação dos módulos}
 \begin{itemize}
     \item Desenvolvimento dos principais componentes do sistema:
     \begin{itemize}
@@ -145,7 +300,7 @@ Para garantir um desenvolvimento organizado e validado em todas as fases do proj
     \item Aplicação de boas práticas de segurança e desempenho.
 \end{itemize}
 
-\subsection{Testes e Validações}
+\subsection{Testes e validações}
 \begin{itemize}
     \item Realização de testes unitários e de integração.
     \item Validação de funcionalidades conforme requisitos do projeto.
@@ -154,7 +309,7 @@ Para garantir um desenvolvimento organizado e validado em todas as fases do proj
 
 \newpage
 
-\section*{Referências}
+\section{Referências}
 \begin{itemize}
 \item \textbf{Django.} The web framework for perfectionists with deadlines. Disponível em: \url{https://www.djangoproject.com}. Acesso em: 14 mai. 2025.
 \item \textbf{MySQL.} MySQL: The world's most advanced open source relational database. Disponível em: \url{https://www.mysql.com}. Acesso em: 8 abr. 2025.
