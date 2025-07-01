@@ -57,11 +57,17 @@ Entre as principais funcionalidades estão: cadastro de veículos e motoristas, 
 
 
 \subsection{requisitos de software}
-   \textbf{3.1.1 Requisitos funcionais (rf)}
+   \textbf{3.1.1 Requisitos funcionais}
 \begin{itemize}
     \item \textbf{RF1 - Cadastro e Organização de Veículos}
     \begin{itemize}
-        \item RF1.1: Permitir o cadastro de veículos, com informações como: placa, modelo, ano de fabricação, capacidade e status operacional.
+        \item RF1.1: Permitir o cadastro de veículos, com informações como:
+        \begin{itemize}
+            \item Placa.
+            \item Modelo.
+            \item Ano de fabricação.
+            \item Status operacional.
+        \end{itemize}
         \item RF1.2: Permitir o cadastro de informações adicionais sobre o estado de manutenção do veículo:
         \begin{itemize}
             \item Saúde dos pneus.
@@ -79,7 +85,11 @@ Entre as principais funcionalidades estão: cadastro de veículos e motoristas, 
     \item \textbf{RF2 - Cadastro e Organização de Motoristas}
 
     \begin{itemize}
-        \item RF02.1: Permitir o cadastro de motoristas com informações pessoais, documentação e histórico de viagens.
+        \item RF02.1: Permitir o cadastro de motoristas como: 
+        \begin{itemize}
+        \item informações pessoais
+        \item documentação
+        \end{itemize}
         \item RF2.2: Permitir a atualização de informações dos motoristas.
         \item RF2.3: Permitir a exclusão ou desativação de motoristas inativos.
     \end{itemize}
@@ -87,8 +97,7 @@ Entre as principais funcionalidades estão: cadastro de veículos e motoristas, 
     \item \textbf{RF3 - Monitoramento e Relatórios Operacionais}
 
     \begin{itemize}
-        \item RF3.1: Permitir a geração de relatórios de desempenho por veículo e motorista.
-        \item RF3.2: Exibir relatórios com métricas como:
+        \item RF3.1: Exibir relatórios com métricas como:
         \begin{itemize}
             \item Quilometragem percorrida.
             \item Número de viagens realizadas.
@@ -100,45 +109,42 @@ Entre as principais funcionalidades estão: cadastro de veículos e motoristas, 
         \begin{itemize}
             \item Quilometragem estimada da viagem.
             \item Impacto na saúde dos pneus.
-            \item Aproximação de revisões, trocas de óleo e outros itens críticos.
+            \item Aproximação de revisões.
+            \item trocas de óleo.
         \end{itemize}
-        \item RF3.4: Permitir exportação dos relatórios.
     \end{itemize}
 
-    \item \textbf{RF4 - Gestão de Usuários e Controle de Acesso}
+    \item \textbf{RF4 - Painel Administrativo e Alertas}
 
     \begin{itemize}
-        \item RF4.1: Implementar sistema de autenticação com credenciais individuais.
-        \item RF4.2: Criar diferentes níveis de acesso.
-    \end{itemize}
-
-    \item \textbf{RF5 - Painel Administrativo e Alertas}
-
-    \begin{itemize}
-        \item RF5.1: Disponibilizar um painel com visão geral das operações:
+        \item RF4.1: Disponibilizar um painel com visão geral das operações:
         \begin{itemize}
             \item Quantidade de veículos ativos.
             \item Motoristas disponíveis.
             \item Viagens em andamento.
             \item Status de manutenção dos veículos.
         \end{itemize}
-        \item RF5.2: Implementar sistema de alertas automáticos para eventos críticos:
-        \begin{itemize}
-            \item Aproximação da data de revisão, troca de óleo ou necessidade de troca de pneus.
+        \item RF4.2: Implementar sistema de alertas automáticos para eventos críticos
+            \begin{itemize}
+            \item data de revisão
+            \item troca de óleo ou 
+            \item troca de pneus.
         \end{itemize}
     \end{itemize}
 \end{itemize}
+O Diagrama de Casos de Uso(Figura 1) do sistema representa, de forma estruturada, as funcionalidades que podem ser acessadas pelo perfil Administrador no sistema, categorizadas por domínio funcional.
+
+A seção Gestão de Usuários contempla ações administrativas relacionadas ao ciclo de vida de usuários do sistema, como criação, desativação, atualização de dados e gerenciamento de níveis de acesso. Na Gestão de Motoristas, o administrador pode realizar o cadastro, atualização e desativação de motoristas da frota.
+
+A área Painel e Alertas fornece acesso ao painel administrativo e a alertas críticos, os quais são fundamentais para a tomada de decisão em tempo real. Por fim, a Gestão de Veículos permite operações completas sobre a frota, incluindo cadastro e atualização de veículos, desativação, atribuição de rotas, controle de manutenção, consulta de status e definição de destinos.
+
+Este diagrama evidencia o papel central do administrador no sistema, tendo acesso completo às funcionalidades críticas que garantem o controle operacional e gerencial da frota.
+
 \begin{figure}[!hbtp]
     \centering
-    \includegraphics[width=1.2\linewidth]{UML1FleetTrack.png}
-    \caption{3.0 UML Administrador}
+    \includegraphics[width=0.9\linewidth,height=0.9\textheight,keepaspectratio]{diagrama_uso_drawio.png}
+    \caption{UML Administrador}
     \label{fig:uml-admin}
-\end{figure}
-\begin{figure}[!htp]
-    \centering
-    \includegraphics[width=0.8\linewidth]{UML2FleetTrack.png}
-    \caption{3.0 UML Motorista}
-    \label{fig:uml-motorista}
 \end{figure}
 
 \newpage
@@ -148,7 +154,6 @@ Entre as principais funcionalidades estão: cadastro de veículos e motoristas, 
 \item RNF02: A plataforma deve garantir respostas rápidas às solicitações dos usuários.
 \item RNF03: Os dados armazenados devem ser mantidos por no mínimo seis meses.
 \item RNF04: A interface do sistema deve ser intuitiva e amigável.
-\item RNF05: O sistema deve gerar notificações em casos de eventos críticos, como atrasos ou desvios de padrão.
 \end{itemize}
 
 \subsection{Considerações de design}
@@ -182,27 +187,25 @@ O projeto adota os seguintes padrões arquiteturais:
     \item \textbf{MVC (Model-View-Controller):} Para organizar a estrutura do backend, separando claramente as camadas de modelo de dados, lógica de negócio e apresentação.
     \item \textbf{RESTful APIs:} Para padronizar a comunicação entre frontend e backend, facilitando a integração com outros sistemas.
 \end{itemize}
-
+\newpage
 \subsubsection*{3.2.4 Modelos C4}
 
-Para uma melhor compreensão da arquitetura do FleetTrack, utilizamos o Modelo C4, que descreve o sistema em quatro níveis de abstração:
+Para uma melhor compreensão da arquitetura do FleetTrack, foi adotado o Modelo C4, que descreve o sistema em três níveis principais de abstração: Contexto, Contêineres e Componentes. Esses níveis possibilitam uma representação gradual da arquitetura, partindo de uma visão geral do sistema até o detalhamento das responsabilidades internas dos seus principais módulos
 
-\paragraph{Contexto}
+\paragraph{Contexto:}
+Diagrama de Contexto(Figura 2), cuja finalidade é fornecer uma visão geral das interações do sistema com agentes externos. O FleetTrack é um sistema de gestão de frotas acessado por um único ator, o Administrador, que exerce funções operacionais e gerenciais através de uma interface web.
 
-O FleetTrack atua como um sistema de gestão de frotas acessado via web por diferentes perfis de usuários: administradores, operadores e motoristas.
+Além da interação humana, o sistema também realiza comunicação automatizada com o serviço externo OpenRouteService API, o qual fornece dados técnicos relacionados a rotas, como informações de distância, elevação e caminhos disponíveis. Essa integração tem como objetivo enriquecer funcionalidades internas, como o planejamento de itinerários e a geração de relatórios baseados em dados geográficos atualizados.
 
-\begin{itemize}
-    \item \textbf{Usuários:} Administradores (gestão e relatórios), motoristas (visualização de itinerários).
-\end{itemize}
 \begin{figure}[!ht]
     \centering
-    \includegraphics[width=0.7\linewidth]{C4Contexto.png}
-    \caption{3.2 C4 Contexto}
-    \label{fig::C4 Contexto}
+    \includegraphics[width=0.4\linewidth,height=0.9\textheight,keepaspectratio]
+    {C4Contexto.png}
+    \caption{C4 Contexto}
 \end{figure}
- \newpage
+\newpage
  
-\paragraph{Contêineres}
+\paragraph{Contêineres:}
 O sistema é dividido em três contêineres principais:
 
 \begin{itemize}
@@ -211,41 +214,32 @@ O sistema é dividido em três contêineres principais:
     \item \textbf{Banco de Dados Relacional:} MySQL, responsável pelo armazenamento persistente e seguro dos dados da frota.
 \end{itemize}
 
-\paragraph{Componentes}
+Diagrama de Contêineres(Figura 3), evidenciando os principais blocos de software que o compõem e suas respectivas interações. O sistema é dividido em três contêineres principais: o Frontend Web, a Backend API e o Banco de Dados.
 
-Cada contêiner possui componentes específicos, conforme descrito a seguir:
+O Frontend Web, desenvolvido com Django Templates, representa a camada de apresentação acessada pelo usuário por meio de um navegador. Esse frontend se comunica com a Backend API, desenvolvida com Django e arquitetura RESTful, responsável por processar as regras de negócio, realizar autenticação de usuários e integrar serviços externos.
 
-\begin{itemize}
-    \item \textbf{Frontend:}
-    \begin{itemize}
-        \item Sistema de autenticação e login.
-        \item Painel administrativo com visualização de indicadores.
-        \item Telas de cadastro e edição de motoristas e veículos.
-    \end{itemize}
-    \newpage
-    \item \textbf{Backend:}
-    \begin{itemize}
-        \item Serviço de autenticação e geração de tokens JWT.
-        \item Módulo de cadastro de motoristas e veículos.
-        \item Módulo de geração de relatórios.
-        \item Sistema de alertas e notificações.
-    \end{itemize}
-    
-    \item \textbf{Banco de Dados:}
-    \begin{itemize}
-        \item Tabela \texttt{usuarios}: armazena dados de autenticação e perfis.
-        \item Tabela \texttt{veiculos}: informações detalhadas sobre os veículos.
-        \item Tabela \texttt{motoristas}: dados cadastrais e de habilitação.
-        \item Tabela \texttt{rotas}: armazena dados de rotas utilizadas.
-    \end{itemize}
-\end{itemize}
+A persistência dos dados é realizada em um banco de dados relacional MySQL, que armazena informações como usuários, veículos, rotas e configurações do sistema. Complementarmente, a Backend API realiza requisições ao serviço externo OpenRouteService API para obtenção de dados técnicos sobre rotas, promovendo maior precisão e eficiência nos processos logísticos oferecidos pela aplicação.
+
+
 \begin{figure}[!ht]
     \centering
-    \includegraphics[width=0.9\linewidth]{C4Componentes.png}
-    \caption{3.2 C4 Componentes}
-    \label{fig::C4 Componentes}
+    \includegraphics[width=9\linewidth,height=0.8\textheight,keepaspectratio]
+    {C4Container.png}
+    \caption{C4 Container}
 \end{figure}
  \newpage
+ \begin{figure}[!hb]
+    \centering
+    \includegraphics[width=1.1\linewidth,height=1\textheight,keepaspectratio]
+    {C4Componentes.png}
+    \caption{C4 Componentes}
+\end{figure}
+\paragraph{Componentes:}
+O Diagrama de Componentes, representado na Figura 4, descreve a estrutura interna dos contêineres, detalhando como eles são compostos por módulos funcionais. No caso do FleetTrack, esse diagrama foca no backend da aplicação, desenvolvido em Django, e identifica seus principais componentes lógicos.
+
+Entre os componentes destacados estão o Serviço de Autenticação, responsável pela emissão de tokens JWT; o Módulo de Cadastro, que gerencia os dados de veículos; o Sistema de Geração de Relatórios, voltado à produção de informações gerenciais; e o Cliente de Integração Externa, que consome dados de rotas por meio de uma API pública. Esses componentes interagem entre si e com o banco de dados relacional, garantindo o funcionamento coeso do sistema.
+
+\newpage
 \subsection{Stack Tecnológica}
 
 \subsubsection*{Linguagens de Programação:}
@@ -311,12 +305,12 @@ Para garantir um desenvolvimento organizado e validado em todas as fases do proj
 
 \section{Referências}
 \begin{itemize}
-\item \textbf{Django.} The web framework for perfectionists with deadlines. Disponível em: \url{https://www.djangoproject.com}. Acesso em: 14 mai. 2025.
-\item \textbf{MySQL.} MySQL: The world's most advanced open source relational database. Disponível em: \url{https://www.mysql.com}. Acesso em: 8 abr. 2025.
+\item \textbf{Django.} The web framework for perfectionists with deadlines. Disponível em: \url{https://www.djangoproject.com}. Acesso em: 14 fev. 2025.
+\item \textbf{MySQL.} MySQL: The world's most advanced open source relational database. Disponível em: \url{https://www.mysql.com}. Acesso em: 8 fev. 2025.
 \item \textbf{JWT.io.} JWT (JSON Web Token) Introduction. Disponível em: \url{https://jwt.io}. Acesso em: 19 mai. 2025.
 \item \textbf{Docker.} Docker - Empowering developers to write, test and deploy code anywhere. Disponível em: \url{https://www.docker.com}. Acesso em: 3 jun. 2025.
-\item \textbf{GitHub.} GitHub - Git repository hosting service. Disponível em: \url{https://github.com}. Acesso em: 29 jul. 2025.
-\item \textbf{Postman.} Postman - API platform for building and using APIs. Disponível em: \url{https://www.postman.com}. Acesso em: 20 nov. 2025.
+\item \textbf{GitHub.} GitHub - Git repository hosting service. Disponível em: \url{https://github.com}. Acesso em: 29 fev. 2025.
+\item \textbf{Postman.} Postman - API platform for building and using APIs. Disponível em: \url{https://www.postman.com}. Acesso em: 20 fev. 2025.
 \end{itemize}
 
 \end{document}
