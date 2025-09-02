@@ -1,0 +1,142 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciamento de Veículos</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="page-header">
+            <div class="header-info">
+                <h1>Gerenciamento de Veículos</h1>
+                <p>Monitore e gerencie os veículos da sua frota</p>
+            </div>
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">← Voltar ao Dashboard</a>
+        </header>
+
+        <main class="dashboard-content">
+            <section class="stat-cards">
+                <div class="card stat-card-alt">
+                    <div class="stat-icon-alt icon-blue">🚚</div>
+                    <div class="stat-info">
+                        <span class="title">Total de Veículos</span>
+                        <span class="value">5</span>
+                    </div>
+                </div>
+                 <div class="card stat-card-alt">
+                    <div class="stat-icon-alt icon-green">✔️</div>
+                    <div class="stat-info">
+                        <span class="title">Disponível</span>
+                        <span class="value">2</span>
+                    </div>
+                </div>
+                <div class="card stat-card-alt">
+                    <div class="stat-icon-alt icon-orange">〰️</div>
+                    <div class="stat-info">
+                        <span class="title">Em Rota</span>
+                        <span class="value">2</span>
+                    </div>
+                </div>
+                <div class="card stat-card-alt">
+                    <div class="stat-icon-alt icon-red">🛠️</div>
+                    <div class="stat-info">
+                        <span class="title">Em Manutenção</span>
+                        <span class="value">1</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card">
+                <div class="table-header">
+                    <h2>Todos os Veículos</h2>
+                    <button class="btn btn-primary">+ Adicionar Veículo</button>
+                </div>
+                <table class="vehicle-table">
+                    <thead>
+                        <tr>
+                            <th>Placa</th>
+                            <th>Modelo</th>
+                            <th>Ano</th>
+                            <th>Status</th>
+                            <th>Quilometragem</th>
+                            <th>Motorista</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span>🚚</span> ABC-1234</td>
+                            <td>Ford Transit</td>
+                            <td>2022</td>
+                            <td><span class="status-tag status-available">Disponível</span></td>
+                            <td>45.230 km</td>
+                            <td><span>👤</span> John Smith</td>
+                            <td class="actions">
+                                <a href="#" title="Ver Detalhes">👁️</a>
+                                <a href="#" title="Editar">✏️</a>
+                                <a href="#" title="Excluir">🗑️</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span>🚚</span> DEF-5678</td>
+                            <td>Mercedes Sprinter</td>
+                            <td>2021</td>
+                            <td><span class="status-tag status-on-route">Em Rota</span></td>
+                            <td>67.890 km</td>
+                            <td><span>👤</span> Sarah Johnson</td>
+                             <td class="actions">
+                                <a href="#" title="Ver Detalhes">👁️</a>
+                                <a href="#" title="Editar">✏️</a>
+                                <a href="#" title="Excluir">🗑️</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span>🚚</span> GHI-9012</td>
+                            <td>Iveco Daily</td>
+                            <td>2023</td>
+                            <td><span class="status-tag status-maintenance">Em Manutenção</span></td>
+                            <td>23.456 km</td>
+                            <td><span>👤</span> Mike Davis</td>
+                             <td class="actions">
+                                <a href="#" title="Ver Detalhes">👁️</a>
+                                <a href="#" title="Editar">✏️</a>
+                                <a href="#" title="Excluir">🗑️</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span>🚚</span> JKL-3456</td>
+                            <td>Volkswagen Crafter</td>
+                            <td>2022</td>
+                            <td><span class="status-tag status-available">Disponível</span></td>
+                            <td>34.567 km</td>
+                            <td><span>👤</span> Emma Wilson</td>
+                             <td class="actions">
+                                <a href="#" title="Ver Detalhes">👁️</a>
+                                <a href="#" title="Editar">✏️</a>
+                                <a href="#" title="Excluir">🗑️</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span>🚚</span> MNO-7890</td>
+                            <td>Renault Master</td>
+                            <td>2021</td>
+                            <td><span class="status-tag status-on-route">Em Rota</span></td>
+                            <td>78.901 km</td>
+                            <td><span>👤</span> David Brown</td>
+                             <td class="actions">
+                                <a href="#" title="Ver Detalhes">👁️</a>
+                                <a href="#" title="Editar">✏️</a>
+                                <a href="#" title="Excluir">🗑️</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

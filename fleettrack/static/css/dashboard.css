@@ -1,0 +1,289 @@
+:root {
+    --bg-color: #f4f7fa;
+    --card-bg-color: #ffffff;
+    --text-color: #333;
+    --text-secondary-color: #777;
+    --border-color: #eef2f7;
+    --primary-color: #2563eb;
+    --success-color: #16a34a;
+    --warning-color: #f97316;
+    --danger-color: #dc2626;
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+.dashboard-container {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.dashboard-header {
+    margin-bottom: 2rem;
+}
+
+.dashboard-header h1 {
+    margin: 0;
+    font-size: 1.75rem;
+}
+
+.dashboard-header p {
+    margin: 0.25rem 0 0;
+    color: var(--text-secondary-color);
+}
+
+/* Layout Geral */
+.stat-cards {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.main-section {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr 1.5fr;
+    gap: 1.5rem;
+}
+
+/* Estilo do Card Genérico */
+.card {
+    background-color: var(--card-bg-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* Cards de Estatística */
+.stat-card {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stat-card .stat-info .title {
+    display: block;
+    color: var(--text-secondary-color);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.stat-card .stat-info .value {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.stat-card .stat-icon {
+    font-size: 1.5rem;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.stat-icon.icon-blue { background-color: #e0f2fe; color: #0ea5e9; }
+.stat-icon.icon-green { background-color: #dcfce7; color: #22c55e; }
+.stat-icon.icon-orange { background-color: #ffedd5; color: #f97316; }
+.stat-icon.icon-red { background-color: #fee2e2; color: #ef4444; }
+
+/* Card de Status da Frota (Gráfico) */
+.fleet-status-card h3 { margin-top: 0; }
+.chart-container {
+    position: relative;
+    height: 200px;
+    margin: 1rem 0;
+}
+.chart-legend { margin-top: 1rem; }
+.legend-item { display: flex; align-items: center; margin-bottom: 0.5rem; font-size: 0.9rem; }
+.legend-item .dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 0.5rem; }
+
+/* Card de Alertas Recentes */
+.recent-alerts-card h3 { margin-top: 0; }
+.alerts-list { list-style: none; padding: 0; margin: 0; }
+.alerts-list li { display: flex; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; }
+.alerts-list li:last-child { border-bottom: none; }
+.alerts-list li span { margin-right: 1rem; font-size: 1.2rem; }
+.alerts-list li small { margin-left: auto; color: var(--text-secondary-color); }
+
+/* Card de Manutenções */
+.maintenance-card h3 { margin-top: 0; }
+.maintenance-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.maintenance-table th, .maintenance-table td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border-color); }
+.maintenance-table th { color: var(--text-secondary-color); font-weight: 600; }
+
+/* Ações do Rodapé */
+.dashboard-actions {
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 1rem;
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: white;
+}
+.btn-primary { background-color: var(--primary-color); }
+.btn-success { background-color: var(--success-color); }
+.btn-warning { background-color: var(--warning-color); }
+
+/* ======== ESTILOS ADICIONAIS PARA A PÁGINA DE VEÍCULOS ======== */
+
+/* Cabeçalho da Página */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.page-header .header-info h1 { margin: 0; font-size: 1.75rem; }
+.page-header .header-info p { margin: 0.25rem 0 0; color: var(--text-secondary-color); }
+
+.btn.btn-secondary {
+    background-color: #eef2f7;
+    color: var(--text-color);
+    border: 1px solid #d1d5db;
+}
+
+/* Variação dos Cards de Estatística */
+.stat-card-alt {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.stat-card-alt .stat-icon-alt {
+    font-size: 1.5rem;
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+}
+
+/* Cabeçalho da Tabela */
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.table-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+/* Tabela de Veículos */
+.vehicle-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.vehicle-table th, .vehicle-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+}
+
+.vehicle-table th {
+    color: var(--text-secondary-color);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.vehicle-table td {
+    font-size: 0.9rem;
+}
+
+.vehicle-table td span {
+    margin-right: 0.5rem;
+}
+
+/* Tags de Status */
+.status-tag {
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+    display: inline-block;
+}
+
+.status-tag.status-available { background-color: #dcfce7; color: #166534; }
+.status-tag.status-on-route { background-color: #ffedd5; color: #9a3412; }
+.status-tag.status-maintenance { background-color: #fee2e2; color: #991b1b; }
+
+/* Ícones de Ação */
+.vehicle-table .actions a {
+    text-decoration: none;
+    font-size: 1.2rem;
+    margin: 0 0.5rem;
+    color: var(--text-secondary-color);
+}
+
+/* ======== ESTILOS ADICIONAIS PARA A PÁGINA DE MOTORISTAS ======== */
+
+/* Nova cor para card de stats */
+.stat-icon-alt.icon-yellow { background-color: #fef9c3; color: #ca8a04; }
+
+/* Tabela de Motoristas */
+.driver-cell {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.driver-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: white;
+    flex-shrink: 0; /* Impede que o avatar encolha */
+}
+
+.avatar-blue { background-color: #3b82f6; }
+.avatar-pink { background-color: #ec4899; }
+.avatar-orange { background-color: #f97316; }
+
+.driver-info strong {
+    display: block;
+    font-weight: 600;
+}
+
+.driver-info small, .contact-info small {
+    color: var(--text-secondary-color);
+}
+
+.contact-info span {
+    display: block;
+}
+
+.rating {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-weight: 600;
+}
+
+.status-tag.status-active { background-color: #dcfce7; color: #166534; }
+.status-tag.status-off-duty { background-color: #e5e7eb; color: #374151; }

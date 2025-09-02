@@ -1,0 +1,159 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciamento de Motoristas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="page-header">
+            <div class="header-info">
+                <h1>Gerenciamento de Motoristas</h1>
+                <p>Monitore e gerencie os motoristas da sua frota</p>
+            </div>
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">← Voltar ao Dashboard</a>
+        </header>
+
+        <main class="dashboard-content">
+            <section class="stat-cards">
+                <div class="card stat-card-alt">
+                    <div class="stat-icon-alt icon-blue">👤</div>
+                    <div class="stat-info">
+                        <span class="title">Total de Motoristas</span>
+                        <span class="value">5</span>
+                    </div>
+                </div>
+                 <div class="card stat-card-alt">
+                    <div class="stat-icon-alt icon-green">✔️</div>
+                    <div class="stat-info">
+                        <span class="title">Ativos</span>
+                        <span class="value">2</span>
+                    </div>
+                </div>
+                <div class="card stat-card-alt">
+                    <div class="stat-icon-alt icon-orange">〰️</div>
+                    <div class="stat-info">
+                        <span class="title">Em Rota</span>
+                        <span class="value">2</span>
+                    </div>
+                </div>
+                <div class="card stat-card-alt">
+                    <div class="stat-icon-alt icon-yellow">⭐</div>
+                    <div class="stat-info">
+                        <span class="title">Nota Média</span>
+                        <span class="value">4.8</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card">
+                <div class="table-header">
+                    <h2>Todos os Motoristas</h2>
+                    <button class="btn btn-primary">+ Adicionar Motorista</button>
+                </div>
+                <table class="vehicle-table driver-table">
+                    <thead>
+                        <tr>
+                            <th>Motorista</th>
+                            <th>Contato</th>
+                            <th>CNH</th>
+                            <th>Status</th>
+                            <th>Veículo</th>
+                            <th>Viagens</th>
+                            <th>Nota</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div class="driver-cell">
+                                    <div class="driver-avatar avatar-blue">JS</div>
+                                    <div class="driver-info">
+                                        <strong>John Smith</strong>
+                                        <small>Entrou em 15-01-2023</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="contact-info">
+                                    <span>john.smith@company.com</span>
+                                    <small>+1 (555) 123-4567</small>
+                                </div>
+                            </td>
+                            <td>DL123456789</td>
+                            <td><span class="status-tag status-active">Ativo</span></td>
+                            <td><span>🚚</span> ABC-1234</td>
+                            <td>245</td>
+                            <td><span class="rating">⭐ 4.8</span></td>
+                            <td class="actions">
+                                <a href="#" title="Ver Detalhes">👁️</a>
+                                <a href="#" title="Editar">✏️</a>
+                                <a href="#" title="Excluir">🗑️</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="driver-cell">
+                                    <div class="driver-avatar avatar-pink">SJ</div>
+                                    <div class="driver-info">
+                                        <strong>Sarah Johnson</strong>
+                                        <small>Entrou em 22-03-2023</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="contact-info">
+                                    <span>sarah.johnson@company.com</span>
+                                    <small>+1 (555) 234-5678</small>
+                                </div>
+                            </td>
+                            <td>DL987654321</td>
+                            <td><span class="status-tag status-on-route">Em Rota</span></td>
+                            <td><span>🚚</span> DEF-5678</td>
+                            <td>189</td>
+                            <td><span class="rating">⭐ 4.9</span></td>
+                            <td class="actions">
+                                <a href="#" title="Ver Detalhes">👁️</a>
+                                <a href="#" title="Editar">✏️</a>
+                                <a href="#" title="Excluir">🗑️</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="driver-cell">
+                                    <div class="driver-avatar avatar-orange">MD</div>
+                                    <div class="driver-info">
+                                        <strong>Mike Davis</strong>
+                                        <small>Entrou em 10-02-2023</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="contact-info">
+                                    <span>mike.davis@company.com</span>
+                                    <small>+1 (555) 345-6789</small>
+                                </div>
+                            </td>
+                            <td>DL456789123</td>
+                            <td><span class="status-tag status-off-duty">Inativo</span></td>
+                            <td><span>🚚</span> GHI-9012</td>
+                            <td>156</td>
+                            <td><span class="rating">⭐ 4.6</span></td>
+                            <td class="actions">
+                                <a href="#" title="Ver Detalhes">👁️</a>
+                                <a href="#" title="Editar">✏️</a>
+                                <a href="#" title="Excluir">🗑️</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+</body>
+</html>
