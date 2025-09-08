@@ -1,6 +1,7 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,14 @@
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
+<script>
+    document.getElementById('id_company_name').placeholder = 'Insira o nome da sua empresa';
+    document.getElementById('id_first_name').placeholder = 'Insira seu nome completo';
+    document.getElementById('id_username').placeholder = 'Insira seu email';
+    document.getElementById('id_password').placeholder = 'Crie uma senha';
+    document.getElementById('id_confirm_password').placeholder = 'Confirme sua senha';
+</script>
+
 <body>
     <div class="login-container">
         <div class="login-box">
@@ -16,45 +25,55 @@
                 <h1>Crie a sua conta</h1>
                 <p>Fleet Management System</p>
             </div>
-            
-            <form method="post">
+
+            <form method="post" novalidate>
                 {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div class="form-errors">
+                    {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
                 <div class="form-group">
-                    <label for="company_name">Nome da Empresa</label>
-                    <div class="input-with-icon">
-                        <input type="text" id="company_name" placeholder="Digite o nome da Empresa" required>
-                    </div>
+                    <label for="{{ form.company_name.id_for_label }}">Nome da Empresa</label>
+                    {{ form.company_name }}
+                    {{ form.company_name.errors }}
                 </div>
 
                 <div class="form-group">
-                    <label for="full_name">Nome Completo</label>
-                    <div class="input-with-icon">
-                        <input type="text" id="full_name" placeholder="Digite o Nome Completo" required>
-                    </div>
+                    <label for="{{ form.first_name.id_for_label }}">Nome Completo</label>
+                    {{ form.first_name }}
+                    {{ form.first_name.errors }}
                 </div>
 
                 <div class="form-group">
-                    <label for="email">Email</label>
-                    <div class="input-with-icon">
-                         <input type="email" id="email" placeholder="Digite o seu email" required>
-                    </div>
+                    <label for="{{ form.username.id_for_label }}">Endereço de Email</label>
+                    {{ form.username }}
+                    {{ form.username.errors }}
                 </div>
 
                 <div class="form-group">
-                    <label for="password">Senha</label>
-                    <div class="input-with-icon">
-                        <input type="password" id="password" placeholder="Digite a senha" required>
-                    </div>
+                    <label for="{{ form.password.id_for_label }}">Senha</label>
+                    {{ form.password }}
+                    {{ form.password.errors }}
                 </div>
 
                 <div class="form-group">
-                    <label for="confirm_password">Confirme a senha</label>
-                    <div class="input-with-icon">
-                        <input type="password" id="confirm_password" placeholder="Confirme a senha" required>
-                    </div>
+                    <label for="{{ form.confirm_password.id_for_label }}">Confirmar Senha</label>
+                    {{ form.confirm_password }}
+                    {{ form.confirm_password.errors }}
                 </div>
 
-                <button type="submit" class="btn-signin">Crie a conta</button>
+                <div class="form-options terms-agreement">
+                    <input type="checkbox" id="terms" required>
+                    <label for="terms">Eu concordo com os <a href="#">Termos e Condições</a> e a <a href="#">Política de
+                            Privacidade</a></label>
+                </div>
+
+                <button type="submit" class="btn-signin">Criar Conta</button>
             </form>
 
             <div class="divider">
@@ -66,4 +85,5 @@
         </div>
     </div>
 </body>
+
 </html>

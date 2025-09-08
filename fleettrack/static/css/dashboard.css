@@ -137,6 +137,7 @@ body {
 .btn-primary { background-color: var(--primary-color); }
 .btn-success { background-color: var(--success-color); }
 .btn-warning { background-color: var(--warning-color); }
+.btn-danger { background-color: var(--danger-color); }
 
 /* ======== ESTILOS ADICIONAIS PARA A PÁGINA DE VEÍCULOS ======== */
 
@@ -287,3 +288,234 @@ body {
 
 .status-tag.status-active { background-color: #dcfce7; color: #166534; }
 .status-tag.status-off-duty { background-color: #e5e7eb; color: #374151; }
+
+/* ======== ESTILOS ADICIONAIS PARA O MODAL DE MANUTENÇÃO ======== */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: none; /* Escondido por padrão */
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-overlay.active {
+    display: flex; /* Visível quando a classe 'active' é adicionada */
+}
+
+.modal-content {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    max-width: 600px; 
+}
+
+.form-row {
+    display: flex;
+    gap: 1.5rem; 
+}
+
+.form-row .form-group {
+    flex: 1; 
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.close-modal {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    color: var(--text-secondary-color);
+}
+
+.modal-form .form-group {
+    margin-bottom: 1.25rem;
+}
+
+.modal-form label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.modal-form input,
+.modal-form select,
+.modal-form textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-family: 'Inter', sans-serif;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+/* ======== ESTILOS PARA HEADER, MAPA E BOTÃO LOGOUT ======== */
+
+/* Ajuste no Header para o botão Sair */
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.btn-logout {
+    background-color: var(--text-color);
+    color: white;
+    text-decoration: none;
+    padding: 0.75rem 1.25rem;
+    border-radius: 6px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-logout .logout-icon {
+    font-size: 1.2rem;
+    transition: transform 0.2s ease-in-out;
+}
+
+.btn-logout:hover .logout-icon {
+    transform: translateX(5px);
+}
+
+/* Card do Mapa */
+.map-card {
+    display: flex;
+    padding: 0;
+    overflow: hidden; /* Garante que o mapa não vaze das bordas arredondadas */
+    height: 450px;
+    margin-bottom: 1.5rem;
+}
+
+.map-container {
+    flex: 3; /* O mapa ocupa 3 partes do espaço */
+}
+
+#live-map {
+    width: 100%;
+    height: 100%;
+}
+
+.map-sidebar {
+    flex: 1; /* A barra lateral ocupa 1 parte */
+    padding: 1.5rem;
+    border-left: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.sidebar-header h4 {
+    margin: 0;
+}
+
+/* Lista de motoristas na barra lateral */
+.driver-status-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.driver-status-list li {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 0;
+}
+
+.driver-status-list li .status-tag {
+    margin-left: auto; /* Empurra a tag de status para a direita */
+}
+
+/* Nova tag de status */
+.status-tag.status-break { background-color: #e0f2fe; color: #0ea5e9; }
+
+
+/* Toggle Switch para "Live Tracking" */
+.live-toggle { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+.live-toggle p { margin: 0; font-size: 0.8rem; }
+.live-toggle input { display: none; }
+.live-toggle span {
+    width: 36px; height: 20px;
+    background-color: #ccc;
+    border-radius: 10px;
+    position: relative;
+    transition: background-color 0.2s;
+}
+.live-toggle span::before {
+    content: '';
+    position: absolute;
+    width: 16px; height: 16px;
+    background-color: white;
+    border-radius: 50%;
+    top: 2px; left: 2px;
+    transition: transform 0.2s;
+}
+.live-toggle input:checked + span { background-color: var(--success-color); }
+.live-toggle input:checked + span::before { transform: translateX(16px); }
+
+/* ======== AJUSTES FINAIS DE ALINHAMENTO ======== */
+
+/* Garante que o texto do alerta cresça para preencher o espaço,
+   forçando o alinhamento vertical correto de todos os itens. */
+.alerts-list li .alert-text {
+    flex-grow: 1;
+}
+
+/* Garante alinhamento vertical no meio para todas as células da tabela */
+.maintenance-table td {
+    vertical-align: middle;
+}
+
+/* Estilos para mensagens do Django */
+.messages {
+    margin: 0 0 1rem 0;
+}
+.alert {
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+}
+.alert-success {
+    background-color: #dcfce7;
+    color: #166534;
+}
+.alert-error {
+    background-color: #fee2e2;
+    color: #991b1b;
+}

@@ -5,8 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciamento de Veículos</title>
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
 </head>
 <body>
     <div class="dashboard-container">
@@ -20,41 +25,22 @@
 
         <main class="dashboard-content">
             <section class="stat-cards">
-                <div class="card stat-card-alt">
-                    <div class="stat-icon-alt icon-blue">🚚</div>
-                    <div class="stat-info">
-                        <span class="title">Total de Veículos</span>
-                        <span class="value">5</span>
-                    </div>
-                </div>
-                 <div class="card stat-card-alt">
-                    <div class="stat-icon-alt icon-green">✔️</div>
-                    <div class="stat-info">
-                        <span class="title">Disponível</span>
-                        <span class="value">2</span>
-                    </div>
-                </div>
-                <div class="card stat-card-alt">
-                    <div class="stat-icon-alt icon-orange">〰️</div>
-                    <div class="stat-info">
-                        <span class="title">Em Rota</span>
-                        <span class="value">2</span>
-                    </div>
-                </div>
-                <div class="card stat-card-alt">
-                    <div class="stat-icon-alt icon-red">🛠️</div>
-                    <div class="stat-info">
-                        <span class="title">Em Manutenção</span>
-                        <span class="value">1</span>
-                    </div>
-                </div>
-            </section>
+                </section>
 
             <section class="card">
                 <div class="table-header">
                     <h2>Todos os Veículos</h2>
-                    <button class="btn btn-primary">+ Adicionar Veículo</button>
+                    <button class="btn btn-primary" id="open-add-vehicle-modal">+ Adicionar Veículo</button>
                 </div>
+
+                {% if messages %}
+                    <div class="messages">
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
                 <table class="vehicle-table">
                     <thead>
                         <tr>
@@ -62,81 +48,81 @@
                             <th>Modelo</th>
                             <th>Ano</th>
                             <th>Status</th>
-                            <th>Quilometragem</th>
                             <th>Motorista</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td><span>🚚</span> ABC-1234</td>
-                            <td>Ford Transit</td>
-                            <td>2022</td>
-                            <td><span class="status-tag status-available">Disponível</span></td>
-                            <td>45.230 km</td>
-                            <td><span>👤</span> John Smith</td>
+                        {% for vehicle in vehicles %}
+                        <tr data-pk="{{ vehicle.pk }}" 
+                            data-plate="{{ vehicle.plate }}"
+                            data-model="{{ vehicle.model }}"
+                            data-year="{{ vehicle.year }}"
+                            data-acquisition_date="{{ vehicle.acquisition_date|date:'d/m/Y' }}"
+                            data-status="{{ vehicle.status }}">
+                            <td><span>🚚</span> {{ vehicle.plate }}</td>
+                            <td>{{ vehicle.model }}</td>
+                            <td>{{ vehicle.year }}</td>
+                            <td><span class="status-tag status-{{ vehicle.get_status_display|slugify }}">{{ vehicle.get_status_display }}</span></td>
+                            <td>
+                                {% if vehicle.driver %}
+                                    <span>👤</span> {{ vehicle.driver.get_full_name|default:vehicle.driver.username }}
+                                {% else %}
+                                    Não atribuído
+                                {% endif %}
+                            </td>
                             <td class="actions">
-                                <a href="#" title="Ver Detalhes">👁️</a>
-                                <a href="#" title="Editar">✏️</a>
-                                <a href="#" title="Excluir">🗑️</a>
+                                <a href="#" class="action-view" title="Ver Detalhes">👁️</a>
+                                <a href="#" class="action-edit" title="Editar">✏️</a>
+                                <a href="#" class="action-delete" title="Excluir">🗑️</a>
                             </td>
                         </tr>
+                        {% empty %}
                         <tr>
-                            <td><span>🚚</span> DEF-5678</td>
-                            <td>Mercedes Sprinter</td>
-                            <td>2021</td>
-                            <td><span class="status-tag status-on-route">Em Rota</span></td>
-                            <td>67.890 km</td>
-                            <td><span>👤</span> Sarah Johnson</td>
-                             <td class="actions">
-                                <a href="#" title="Ver Detalhes">👁️</a>
-                                <a href="#" title="Editar">✏️</a>
-                                <a href="#" title="Excluir">🗑️</a>
-                            </td>
+                            <td colspan="6" style="text-align: center;">Nenhum veículo cadastrado.</td>
                         </tr>
-                        <tr>
-                            <td><span>🚚</span> GHI-9012</td>
-                            <td>Iveco Daily</td>
-                            <td>2023</td>
-                            <td><span class="status-tag status-maintenance">Em Manutenção</span></td>
-                            <td>23.456 km</td>
-                            <td><span>👤</span> Mike Davis</td>
-                             <td class="actions">
-                                <a href="#" title="Ver Detalhes">👁️</a>
-                                <a href="#" title="Editar">✏️</a>
-                                <a href="#" title="Excluir">🗑️</a>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><span>🚚</span> JKL-3456</td>
-                            <td>Volkswagen Crafter</td>
-                            <td>2022</td>
-                            <td><span class="status-tag status-available">Disponível</span></td>
-                            <td>34.567 km</td>
-                            <td><span>👤</span> Emma Wilson</td>
-                             <td class="actions">
-                                <a href="#" title="Ver Detalhes">👁️</a>
-                                <a href="#" title="Editar">✏️</a>
-                                <a href="#" title="Excluir">🗑️</a>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><span>🚚</span> MNO-7890</td>
-                            <td>Renault Master</td>
-                            <td>2021</td>
-                            <td><span class="status-tag status-on-route">Em Rota</span></td>
-                            <td>78.901 km</td>
-                            <td><span>👤</span> David Brown</td>
-                             <td class="actions">
-                                <a href="#" title="Ver Detalhes">👁️</a>
-                                <a href="#" title="Editar">✏️</a>
-                                <a href="#" title="Excluir">🗑️</a>
-                            </td>
-                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </section>
         </main>
     </div>
+
+    <div class="modal-overlay" id="add-vehicle-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="vehicle-modal-title">Adicionar Novo Veículo</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form method="post" id="vehicle-form">
+                {% csrf_token %}
+                {{ add_form.as_p }}
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary close-modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Veículo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="deactivate-vehicle-modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Desativar Veículo</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form method="post" id="deactivate-form">
+                {% csrf_token %}
+                <p>Tem certeza que deseja desativar este veículo? Por favor, informe a data.</p>
+                {{ deactivate_form.as_p }}
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary close-modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Confirmar Desativação</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script src="{% static 'js/vehicles.js' %}"></script>
 </body>
 </html>

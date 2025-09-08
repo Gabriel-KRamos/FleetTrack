@@ -4,139 +4,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Gestão de Frotas</title>
+    <title>Gerenciamento de Motoristas</title>
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
 </head>
 <body>
     <div class="dashboard-container">
-        <header class="dashboard-header">
-            <h1>Dashboard de Gestão de Frotas</h1>
-            <p>Monitore e gerencie sua frota de veículos em tempo real</p>
+        <header class="page-header">
+            <div class="header-info">
+                <h1>Gerenciamento de Motoristas</h1>
+                <p>Monitore e gerencie os motoristas da sua frota</p>
+            </div>
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">← Voltar ao Dashboard</a>
         </header>
 
         <main class="dashboard-content">
-            <section class="stat-cards">
-                <div class="card stat-card">
-                    <div class="stat-info">
-                        <span class="title">Total de Veículos</span>
-                        <span class="value">125</span>
-                    </div>
-                    <div class="stat-icon icon-blue">🚚</div>
+            <section class="card">
+                <div class="table-header">
+                    <h2>Todos os Motoristas</h2>
+                    <button class="btn btn-primary" id="open-add-driver-modal">+ Adicionar Motorista</button>
                 </div>
-                <div class="card stat-card">
-                    <div class="stat-info">
-                        <span class="title">Veículos em Rota</span>
-                        <span class="value">43</span>
+                
+                {% if messages %}
+                    <div class="messages">
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                        {% endfor %}
                     </div>
-                    <div class="stat-icon icon-green">〰️</div>
-                </div>
-                <div class="card stat-card">
-                    <div class="stat-info">
-                        <span class="title">Em Manutenção</span>
-                        <span class="value">8</span>
-                    </div>
-                    <div class="stat-icon icon-orange">🛠️</div>
-                </div>
-                <div class="card stat-card">
-                    <div class="stat-info">
-                        <span class="title">Alertas Hoje</span>
-                        <span class="value">3</span>
-                    </div>
-                    <div class="stat-icon icon-red">⚠️</div>
-                </div>
-            </section>
+                {% endif %}
 
-            <section class="main-section">
-                <div class="card fleet-status-card">
-                    <h3>Status da Frota</h3>
-                    <div class="chart-container">
-                        <canvas id="fleetStatusChart"></canvas>
-                    </div>
-                    <div class="chart-legend">
-                        <div class="legend-item">
-                            <span class="dot" style="background-color: #4CAF50;"></span> Disponível: 45%
-                        </div>
-                        <div class="legend-item">
-                            <span class="dot" style="background-color: #FFC107;"></span> Em Rota: 35%
-                        </div>
-                        <div class="legend-item">
-                            <span class="dot" style="background-color: #F44336;"></span> Em Manutenção: 20%
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card recent-alerts-card">
-                    <h3>Alertas Recentes</h3>
-                    <ul class="alerts-list">
-                        <li><span>⭕</span> Alerta de velocidade - Placa ABC-1234 <small>2 minutos atrás</small></li>
-                        <li><span>🛠️</span> Manutenção pendente - Placa DEF-5678 <small>15 minutos atrás</small></li>
-                        <li><span>〰️</span> Desvio de rota - Placa GHI-9012 <small>1 hora atrás</small></li>
-                        <li><span>⛽</span> Combustível baixo - Placa JKL-3456 <small>2 horas atrás</small></li>
-                        <li><span>🌡️</span> Temperatura alta do motor - Placa MNO-7890 <small>3 horas atrás</small></li>
-                    </ul>
-                </div>
-
-                <div class="card maintenance-card">
-                    <h3>Próximas Manutenções Agendadas</h3>
-                    <table class="maintenance-table">
-                        <thead>
-                            <tr>
-                                <th>VEÍCULO</th>
-                                <th>SERVIÇO</th>
-                                <th>DATA</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr><td>ABC-1234</td><td>Troca de Óleo</td><td>15-12-2024</td></tr>
-                            <tr><td>DEF-5678</td><td>Inspeção de Freio</td><td>16-12-2024</td></tr>
-                            <tr><td>GHI-9012</td><td>Rodízio de Pneus</td><td>18-12-2024</td></tr>
-                            <tr><td>JKL-3456</td><td>Verificação do Motor</td><td>20-12-2024</td></tr>
-                            <tr><td>MNO-7890</td><td>Teste de Bateria</td><td>22-12-2024</td></tr>
-                        </tbody>
-                    </table>
-                </div>
+                <table class="vehicle-table driver-table">
+                    <thead>
+                        <tr>
+                            <th>Motorista</th>
+                            <th>Contato</th>
+                            <th>CNH</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for driver in drivers %}
+                        <tr data-pk="{{ driver.pk }}" 
+                            data-full_name="{{ driver.first_name }}"
+                            data-email="{{ driver.email }}"
+                            data-phone="{{ driver.userprofile.phone_number|default:'' }}"
+                            data-license="{{ driver.userprofile.license_number|default:'' }}">
+                            <td>
+                                <div class="driver-cell">
+                                    <div class="driver-avatar avatar-blue">{{ driver.first_name|slice:":1" }}{{ driver.last_name|slice:":1" }}</div>
+                                    <div class="driver-info">
+                                        <strong>{{ driver.first_name }}</strong>
+                                        <small>Entrou em {{ driver.date_joined|date:"d-m-Y" }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="contact-info">
+                                    <span>{{ driver.email }}</span>
+                                    <small>{{ driver.userprofile.phone_number|default:'(não informado)' }}</small>
+                                </div>
+                            </td>
+                            <td>{{ driver.userprofile.license_number|default:'(não informado)' }}</td>
+                            <td class="actions">
+                                <a href="#" class="action-view" title="Ver Detalhes">👁️</a>
+                                <a href="#" class="action-edit" title="Editar">✏️</a>
+                                <a href="#" class="action-delete" title="Excluir">🗑️</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" style="text-align: center;">Nenhum motorista cadastrado.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </section>
         </main>
-        
-        <footer class="dashboard-actions">
-            <button class="btn btn-primary">+ Registrar Rota</button>
-            <a href="{% url 'vehicle-list' %}"><button class="btn btn-success">Veículos</button></a>
-            <a href="{% url 'driver-list' %}"><button class="btn btn-success">Motoristas</button></a>
-            <button class="btn btn-warning">Manutenção</button>
-        </footer>
     </div>
 
-    <script>
-        const ctx = document.getElementById('fleetStatusChart').getContext('2d');
-        const fleetStatusChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Disponível', 'Em Rota', 'Em Manutenção'],
-                datasets: [{
-                    label: 'Status da Frota',
-                    data: [45, 35, 20], // Dados estáticos
-                    backgroundColor: [
-                        '#4CAF50', // Verde para Disponível
-                        '#FFC107', // Amarelo para Em Rota
-                        '#F44336'  // Vermelho para Em Manutenção
-                    ],
-                    borderColor: '#FFFFFF',
-                    borderWidth: 4,
-                    cutout: '75%' // Controla a espessura do "donut"
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false // Escondemos a legenda padrão para usar a nossa em HTML
-                    }
-                }
-            }
-        });
-    </script>
+    <div class="modal-overlay" id="add-driver-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="driver-modal-title">Adicionar Novo Motorista</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form method="post" id="driver-form">
+                {% csrf_token %}
+                {{ add_form.as_p }}
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary close-modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Motorista</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="modal-overlay" id="demission-modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2>Registrar Demissão</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form method="post" id="demission-form">
+                {% csrf_token %}
+                <p>Para desativar um motorista, por favor, insira a data de demissão.</p>
+                {{ deactivate_form.as_p }}
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary close-modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Confirmar Demissão</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{% static 'js/drivers.js' %}"></script>
 </body>
 </html>
