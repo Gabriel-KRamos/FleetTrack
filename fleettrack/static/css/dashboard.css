@@ -24,6 +24,9 @@ body {
 }
 
 .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 2rem;
 }
 
@@ -37,7 +40,6 @@ body {
     color: var(--text-secondary-color);
 }
 
-/* Layout Geral */
 .stat-cards {
     display: flex;
     gap: 1.5rem;
@@ -50,7 +52,6 @@ body {
     gap: 1.5rem;
 }
 
-/* Estilo do Card Genérico */
 .card {
     background-color: var(--card-bg-color);
     border-radius: 8px;
@@ -58,7 +59,6 @@ body {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
-/* Cards de Estatística */
 .stat-card {
     flex: 1;
     display: flex;
@@ -93,7 +93,6 @@ body {
 .stat-icon.icon-orange { background-color: #ffedd5; color: #f97316; }
 .stat-icon.icon-red { background-color: #fee2e2; color: #ef4444; }
 
-/* Card de Status da Frota (Gráfico) */
 .fleet-status-card h3 { margin-top: 0; }
 .chart-container {
     position: relative;
@@ -104,21 +103,19 @@ body {
 .legend-item { display: flex; align-items: center; margin-bottom: 0.5rem; font-size: 0.9rem; }
 .legend-item .dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 0.5rem; }
 
-/* Card de Alertas Recentes */
 .recent-alerts-card h3 { margin-top: 0; }
 .alerts-list { list-style: none; padding: 0; margin: 0; }
 .alerts-list li { display: flex; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; }
 .alerts-list li:last-child { border-bottom: none; }
 .alerts-list li span { margin-right: 1rem; font-size: 1.2rem; }
+.alerts-list li .alert-text { flex-grow: 1; }
 .alerts-list li small { margin-left: auto; color: var(--text-secondary-color); }
 
-/* Card de Manutenções */
 .maintenance-card h3 { margin-top: 0; }
 .maintenance-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-.maintenance-table th, .maintenance-table td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border-color); }
+.maintenance-table th, .maintenance-table td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
 .maintenance-table th { color: var(--text-secondary-color); font-weight: 600; }
 
-/* Ações do Rodapé */
 .dashboard-actions {
     margin-top: 1.5rem;
     display: flex;
@@ -139,32 +136,25 @@ body {
 .btn-warning { background-color: var(--warning-color); }
 .btn-danger { background-color: var(--danger-color); }
 
-/* ======== ESTILOS ADICIONAIS PARA A PÁGINA DE VEÍCULOS ======== */
-
-/* Cabeçalho da Página */
 .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
 }
-
 .page-header .header-info h1 { margin: 0; font-size: 1.75rem; }
 .page-header .header-info p { margin: 0.25rem 0 0; color: var(--text-secondary-color); }
-
 .btn.btn-secondary {
     background-color: #eef2f7;
     color: var(--text-color);
     border: 1px solid #d1d5db;
 }
 
-/* Variação dos Cards de Estatística */
 .stat-card-alt {
     display: flex;
     align-items: center;
     gap: 1.5rem;
 }
-
 .stat-card-alt .stat-icon-alt {
     font-size: 1.5rem;
     width: 45px;
@@ -175,48 +165,36 @@ body {
     border-radius: 8px;
 }
 
-/* Cabeçalho da Tabela */
 .table-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1.5rem;
 }
-
 .table-header h2 {
     margin: 0;
     font-size: 1.25rem;
 }
 
-/* Tabela de Veículos */
 .vehicle-table {
     width: 100%;
     border-collapse: collapse;
 }
-
 .vehicle-table th, .vehicle-table td {
     padding: 1rem;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
     vertical-align: middle;
 }
-
 .vehicle-table th {
     color: var(--text-secondary-color);
     font-size: 0.8rem;
     text-transform: uppercase;
     font-weight: 600;
 }
+.vehicle-table td { font-size: 0.9rem; }
+.vehicle-table td span { margin-right: 0.5rem; }
 
-.vehicle-table td {
-    font-size: 0.9rem;
-}
-
-.vehicle-table td span {
-    margin-right: 0.5rem;
-}
-
-/* Tags de Status */
 .status-tag {
     padding: 0.25rem 0.75rem;
     border-radius: 999px;
@@ -225,12 +203,13 @@ body {
     text-align: center;
     display: inline-block;
 }
+.status-tag.status-available, .status-tag.status-disponível { background-color: #dcfce7; color: #166534; }
+.status-tag.status-on-route, .status-tag.status-em-rota { background-color: #ffedd5; color: #9a3412; }
+.status-tag.status-maintenance, .status-tag.status-em-manutenção { background-color: #fee2e2; color: #991b1b; }
+.status-tag.status-disabled, .status-tag.status-desativado { background-color: #e5e7eb; color: #374151; }
+.status-tag.status-active { background-color: #dcfce7; color: #166534; }
+.status-tag.status-off-duty { background-color: #e5e7eb; color: #374151; }
 
-.status-tag.status-available { background-color: #dcfce7; color: #166534; }
-.status-tag.status-on-route { background-color: #ffedd5; color: #9a3412; }
-.status-tag.status-maintenance { background-color: #fee2e2; color: #991b1b; }
-
-/* Ícones de Ação */
 .vehicle-table .actions a {
     text-decoration: none;
     font-size: 1.2rem;
@@ -238,18 +217,12 @@ body {
     color: var(--text-secondary-color);
 }
 
-/* ======== ESTILOS ADICIONAIS PARA A PÁGINA DE MOTORISTAS ======== */
-
-/* Nova cor para card de stats */
 .stat-icon-alt.icon-yellow { background-color: #fef9c3; color: #ca8a04; }
-
-/* Tabela de Motoristas */
 .driver-cell {
     display: flex;
     align-items: center;
     gap: 1rem;
 }
-
 .driver-avatar {
     width: 40px;
     height: 40px;
@@ -259,131 +232,23 @@ body {
     justify-content: center;
     font-weight: 600;
     color: white;
-    flex-shrink: 0; /* Impede que o avatar encolha */
+    flex-shrink: 0;
 }
-
 .avatar-blue { background-color: #3b82f6; }
 .avatar-pink { background-color: #ec4899; }
 .avatar-orange { background-color: #f97316; }
-
+.avatar-green { background-color: #16a34a; }
 .driver-info strong {
     display: block;
     font-weight: 600;
 }
-
-.driver-info small, .contact-info small {
-    color: var(--text-secondary-color);
-}
-
-.contact-info span {
-    display: block;
-}
-
+.driver-info small, .contact-info small { color: var(--text-secondary-color); }
+.contact-info span { display: block; }
 .rating {
     display: flex;
     align-items: center;
     gap: 0.25rem;
     font-weight: 600;
-}
-
-.status-tag.status-active { background-color: #dcfce7; color: #166534; }
-.status-tag.status-off-duty { background-color: #e5e7eb; color: #374151; }
-
-/* ======== ESTILOS ADICIONAIS PARA O MODAL DE MANUTENÇÃO ======== */
-
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
-    display: none; /* Escondido por padrão */
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.modal-overlay.active {
-    display: flex; /* Visível quando a classe 'active' é adicionada */
-}
-
-.modal-content {
-    background-color: white;
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    width: 100%;
-    max-width: 600px; 
-}
-
-.form-row {
-    display: flex;
-    gap: 1.5rem; 
-}
-
-.form-row .form-group {
-    flex: 1; 
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.modal-header h2 {
-    margin: 0;
-    font-size: 1.25rem;
-}
-
-.close-modal {
-    background: none;
-    border: none;
-    font-size: 2rem;
-    cursor: pointer;
-    color: var(--text-secondary-color);
-}
-
-.modal-form .form-group {
-    margin-bottom: 1.25rem;
-}
-
-.modal-form label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    font-size: 0.9rem;
-}
-
-.modal-form input,
-.modal-form select,
-.modal-form textarea {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    font-size: 1rem;
-    font-family: 'Inter', sans-serif;
-}
-
-.modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-    margin-top: 1.5rem;
-}
-
-/* ======== ESTILOS PARA HEADER, MAPA E BOTÃO LOGOUT ======== */
-
-/* Ajuste no Header para o botão Sair */
-.dashboard-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
 }
 
 .btn-logout {
@@ -397,76 +262,44 @@ body {
     align-items: center;
     gap: 0.5rem;
 }
-
 .btn-logout .logout-icon {
     font-size: 1.2rem;
     transition: transform 0.2s ease-in-out;
 }
+.btn-logout:hover .logout-icon { transform: translateX(5px); }
 
-.btn-logout:hover .logout-icon {
-    transform: translateX(5px);
-}
-
-/* Card do Mapa */
 .map-card {
     display: flex;
     padding: 0;
-    overflow: hidden; /* Garante que o mapa não vaze das bordas arredondadas */
+    overflow: hidden;
     height: 450px;
     margin-bottom: 1.5rem;
 }
-
-.map-container {
-    flex: 3; /* O mapa ocupa 3 partes do espaço */
-}
-
-#live-map {
-    width: 100%;
-    height: 100%;
-}
-
+.map-container { flex: 3; }
+#live-map { width: 100%; height: 100%; }
 .map-sidebar {
-    flex: 1; /* A barra lateral ocupa 1 parte */
+    flex: 1;
     padding: 1.5rem;
     border-left: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
 }
-
 .sidebar-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
 }
-
-.sidebar-header h4 {
-    margin: 0;
-}
-
-/* Lista de motoristas na barra lateral */
-.driver-status-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
+.sidebar-header h4 { margin: 0; }
+.driver-status-list { list-style: none; padding: 0; margin: 0; }
 .driver-status-list li {
     display: flex;
     align-items: center;
     gap: 1rem;
     padding: 0.75rem 0;
 }
-
-.driver-status-list li .status-tag {
-    margin-left: auto; /* Empurra a tag de status para a direita */
-}
-
-/* Nova tag de status */
+.driver-status-list li .status-tag { margin-left: auto; }
 .status-tag.status-break { background-color: #e0f2fe; color: #0ea5e9; }
-
-
-/* Toggle Switch para "Live Tracking" */
 .live-toggle { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
 .live-toggle p { margin: 0; font-size: 0.8rem; }
 .live-toggle input { display: none; }
@@ -489,33 +322,219 @@ body {
 .live-toggle input:checked + span { background-color: var(--success-color); }
 .live-toggle input:checked + span::before { transform: translateX(16px); }
 
-/* ======== AJUSTES FINAIS DE ALINHAMENTO ======== */
-
-/* Garante que o texto do alerta cresça para preencher o espaço,
-   forçando o alinhamento vertical correto de todos os itens. */
-.alerts-list li .alert-text {
-    flex-grow: 1;
-}
-
-/* Garante alinhamento vertical no meio para todas as células da tabela */
-.maintenance-table td {
-    vertical-align: middle;
-}
-
-/* Estilos para mensagens do Django */
-.messages {
-    margin: 0 0 1rem 0;
-}
+.messages { margin: 0 0 1rem 0; }
 .alert {
     padding: 1rem;
     border-radius: 6px;
     margin-bottom: 0.5rem;
 }
-.alert-success {
-    background-color: #dcfce7;
-    color: #166534;
+.alert-success { background-color: #dcfce7; color: #166534; }
+.alert-error { background-color: #fee2e2; color: #991b1b; }
+
+tr.vehicle-disabled,
+tr.driver-disabled {
+    background-color: #f8f9fa;
+    opacity: 0.6;
 }
-.alert-error {
-    background-color: #fee2e2;
-    color: #991b1b;
+tr.vehicle-disabled td,
+tr.driver-disabled td { color: #6c757d; }
+
+/* ======== ESTILOS DO MODAL (VERSÃO FINAL E COMPACTA) ======== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+.modal-overlay.active {
+    display: flex;
+}
+.modal-content {
+    background-color: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    height: 90%;
+    max-width: 500px;
+}
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+.close-modal {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    color: var(--text-secondary-color);
+}
+.modal-form .form-group {
+    margin-bottom: 1rem;
+}
+.modal-form label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+.modal-form input,
+.modal-form select,
+.modal-form textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-family: 'Inter', sans-serif;
+    box-sizing: border-box;
+    resize: none;
+}
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+.modal-form .form-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+}
+.modal-form .form-row .form-group {
+    flex-basis: calc(50% - 0.75rem);
+    margin-bottom: 1rem;
+}
+.history-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.history-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+.history-list li:last-child {
+    border-bottom: none;
+}
+.history-date {
+    font-weight: 500;
+}
+.history-service {
+    background-color: #e0f2fe;
+    color: #0c4a6e;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+.modal-content.details-modal {
+    max-width: 550px;
+}
+
+.details-header-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.details-header-info .details-icon {
+    font-size: 1.5rem;
+    background-color: #e0f2fe;
+    color: #0c4a6e;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+}
+
+.details-header-info h2 {
+    margin: 0;
+}
+
+.details-header-info p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary-color);
+}
+
+.details-section {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.details-section h4 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    color: var(--text-secondary-color);
+    font-weight: 500;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.info-item small {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-secondary-color);
+    margin-bottom: 0.25rem;
+}
+
+.info-item strong {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.driver-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 6px;
+}
+/* Estilos para a lista de histórico (para parecer clicável) */
+.history-list li {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.history-list li:hover {
+    background-color: #f8f9fa;
+}
+
+/* Estilos para o modal de detalhes da manutenção */
+.maintenance-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 0.75rem 1.5rem;
+}
+.maintenance-details-grid dt {
+    font-weight: 600;
+    color: var(--text-secondary-color);
+    text-align: right;
+}
+.maintenance-details-grid dd {
+    margin: 0;
 }

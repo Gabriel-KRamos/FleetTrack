@@ -9,13 +9,6 @@
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
-<script>
-    document.getElementById('id_company_name').placeholder = 'Insira o nome da sua empresa';
-    document.getElementById('id_first_name').placeholder = 'Insira seu nome completo';
-    document.getElementById('id_username').placeholder = 'Insira seu email';
-    document.getElementById('id_password').placeholder = 'Crie uma senha';
-    document.getElementById('id_confirm_password').placeholder = 'Confirme sua senha';
-</script>
 
 <body>
     <div class="login-container">
@@ -30,7 +23,7 @@
                 {% csrf_token %}
 
                 {% if form.non_field_errors %}
-                <div class="form-errors">
+                <div class="form-errors" style="color: red; margin-bottom: 1rem;">
                     {% for error in form.non_field_errors %}
                     <p>{{ error }}</p>
                     {% endfor %}
@@ -84,6 +77,14 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.getElementById('id_company_name').placeholder = 'Insira o nome da sua empresa';
+        document.getElementById('id_first_name').placeholder = 'Insira seu nome completo';
+        document.getElementById('id_username').placeholder = 'Insira seu email';
+        document.getElementById('id_password').placeholder = 'Crie uma senha';
+        document.getElementById('id_confirm_password').placeholder = 'Confirme sua senha';
+    </script>
 </body>
 
 </html>

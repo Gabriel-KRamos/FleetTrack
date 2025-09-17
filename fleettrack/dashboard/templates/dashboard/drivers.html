@@ -8,10 +8,7 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
-    
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
 </head>
 <body>
     <div class="dashboard-container">
@@ -49,31 +46,39 @@
                     </thead>
                     <tbody>
                         {% for driver in drivers %}
-                        <tr data-pk="{{ driver.pk }}" 
-                            data-full_name="{{ driver.first_name }}"
+                        <tr class="{% if not driver.is_active %}driver-disabled{% endif %}" 
+                            data-pk="{{ driver.pk }}" 
+                            data-full_name="{{ driver.full_name }}"
                             data-email="{{ driver.email }}"
-                            data-phone="{{ driver.userprofile.phone_number|default:'' }}"
-                            data-license="{{ driver.userprofile.license_number|default:'' }}">
+                            data-phone_number="{{ driver.phone_number|default:'' }}"
+                            data-license_number="{{ driver.license_number|default:'' }}"
+                            data-admission_date="{{ driver.admission_date|date:'d/m/Y' }}">
                             <td>
                                 <div class="driver-cell">
-                                    <div class="driver-avatar avatar-blue">{{ driver.first_name|slice:":1" }}{{ driver.last_name|slice:":1" }}</div>
+                                    <div class="driver-avatar avatar-blue">{{ driver.full_name|slice:":1" }}</div>
                                     <div class="driver-info">
-                                        <strong>{{ driver.first_name }}</strong>
-                                        <small>Entrou em {{ driver.date_joined|date:"d-m-Y" }}</small>
+                                        <strong>{{ driver.full_name }}</strong>
+                                        {% if driver.is_active %}
+                                            <small>Entrou em {{ driver.admission_date|date:"d-m-Y" }}</small>
+                                        {% else %}
+                                            <small style="color: #dc2626;">Demitido em {{ driver.demission_date|date:"d-m-Y" }}</small>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </td>
                             <td>
                                 <div class="contact-info">
                                     <span>{{ driver.email }}</span>
-                                    <small>{{ driver.userprofile.phone_number|default:'(não informado)' }}</small>
+                                    <small>{{ driver.phone_number|default:'(não informado)' }}</small>
                                 </div>
                             </td>
-                            <td>{{ driver.userprofile.license_number|default:'(não informado)' }}</td>
+                            <td>{{ driver.license_number|default:'(não informado)' }}</td>
                             <td class="actions">
                                 <a href="#" class="action-view" title="Ver Detalhes">👁️</a>
-                                <a href="#" class="action-edit" title="Editar">✏️</a>
-                                <a href="#" class="action-delete" title="Excluir">🗑️</a>
+                                {% if driver.is_active %}
+                                    <a href="#" class="action-edit" title="Editar">✏️</a>
+                                    <a href="#" class="action-delete" title="Demitir">🗑️</a>
+                                {% endif %}
                             </td>
                         </tr>
                         {% empty %}
@@ -98,7 +103,7 @@
                 {{ add_form.as_p }}
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary close-modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Salvar Motorista</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
                 </div>
             </form>
         </div>
@@ -107,21 +112,22 @@
     <div class="modal-overlay" id="demission-modal">
         <div class="modal-content" style="max-width: 450px;">
             <div class="modal-header">
-                <h2>Registrar Demissão</h2>
+                <h2>Demitir Motorista</h2>
                 <button class="close-modal">&times;</button>
             </div>
             <form method="post" id="demission-form">
                 {% csrf_token %}
-                <p>Para desativar um motorista, por favor, insira a data de demissão.</p>
-                {{ deactivate_form.as_p }}
+                <p>Você tem certeza que deseja desativar este motorista? Esta ação registrará a data de demissão e o removerá das listas ativas.</p>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary close-modal">Cancelar</button>
-                    <button type="submit" class="btn btn-danger">Confirmar Demissão</button>
+                    <button type="submit" class="btn btn-danger">Sim, Confirmar Demissão</button>
                 </div>
             </form>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
     <script src="{% static 'js/drivers.js' %}"></script>
 </body>
 </html>
