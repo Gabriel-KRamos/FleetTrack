@@ -3,17 +3,15 @@ from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from datetime import date
-from .models import Vehicle, Driver, Maintenance 
-from .forms import VehicleForm, DriverForm, MaintenanceForm
+from .models import Vehicle, Driver, Maintenance, Route
+from .forms import VehicleForm, DriverForm, MaintenanceForm, RouteForm
 
 
 class DashboardView(LoginRequiredMixin, View):
-    # Esta view foi alterada para carregar os formulários dos modais
     def get(self, request):
-        # Passa os formulários vazios para os modais do dashboard
         context = {
             'maintenance_form': MaintenanceForm(),
-            # Adicione aqui outros formulários se precisar deles nos modais do dashboard
+            'route_form': RouteForm(),
         }
         return render(request, 'dashboard/dashboard.html', context)
 
@@ -22,10 +20,13 @@ class VehicleListView(LoginRequiredMixin, View):
     def get(self, request):
         vehicles = Vehicle.objects.all().order_by('status', '-year')
         maintenances = Maintenance.objects.all().order_by('-start_date')
+        routes = Route.objects.all().order_by('-start_time')
+        
         context = {
             'vehicles': vehicles,
             'add_form': VehicleForm(),
             'maintenances': maintenances,
+            'routes': routes,
         }
         return render(request, 'dashboard/vehicles.html', context)
 
@@ -103,7 +104,6 @@ class DriverDeactivateView(LoginRequiredMixin, View):
         messages.success(request, f'Motorista {driver.full_name} desativado com sucesso.')
         return redirect('driver-list')
 
-# --- VIEW DE MANUTENÇÃO ---
 
 class MaintenanceCreateView(LoginRequiredMixin, View):
     def post(self, request):
@@ -117,4 +117,16 @@ class MaintenanceCreateView(LoginRequiredMixin, View):
             for field, errors in form.errors.items():
                 error_text += f"{field}: {', '.join(errors)} "
             messages.error(request, f"Erro no agendamento: {error_text}")
+        return redirect('dashboard')
+class RouteCreateView(LoginRequiredMixin, View):
+    def post(self, request):
+        form = RouteForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Rota registrada com sucesso!')
+        else:
+            error_text = ""
+            for field, errors in form.errors.items():
+                error_text += f"{field}: {', '.join(errors)} "
+            messages.error(request, f"Erro ao registrar rota: {error_text}")
         return redirect('dashboard')

@@ -1,6 +1,7 @@
-from django.db import models
-from django.contrib.auth.models import User
+# dashboard/models.py (VERSÃO CORRIGIDA)
 
+from django.db import models
+from django.utils import timezone
 
 class Driver(models.Model):
     full_name = models.CharField(max_length=100, verbose_name="Nome Completo")
@@ -50,3 +51,32 @@ class Maintenance(models.Model):
 
     def __str__(self):
         return f"{self.service_type} - {self.vehicle.plate}"
+
+class Route(models.Model):
+    STATUS_CHOICES = [
+        ('scheduled', 'Agendada'),
+        ('in_progress', 'Em Andamento'),
+        ('completed', 'Concluída'),
+        ('canceled', 'Cancelada'),
+    ]
+    start_location = models.CharField(max_length=255, verbose_name="Local de Partida")
+    end_location = models.CharField(max_length=255, verbose_name="Local de Chegada")
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, verbose_name="Veículo")
+    driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, verbose_name="Motorista")
+    start_time = models.DateTimeField(verbose_name="Início Programado")
+    end_time = models.DateTimeField(verbose_name="Fim Programado")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='scheduled', verbose_name="Status")
+
+    @property
+    def dynamic_status(self):
+        now = timezone.now()
+        if self.status in ['completed', 'canceled']:
+            return self.get_status_display()
+        if self.end_time < now:
+            return "Concluída"
+        if self.start_time <= now < self.end_time:
+            return "Em Andamento"
+        return self.get_status_display()
+
+    def __str__(self):
+        return f"Rota de {self.start_location} para {self.end_location} ({self.start_time.strftime('%d/%m/%Y')})"

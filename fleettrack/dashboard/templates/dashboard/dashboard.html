@@ -263,47 +263,37 @@
                 <h2>Registrar Nova Rota</h2>
                 <button class="close-modal">&times;</button>
             </div>
-            <form class="modal-form">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="start-location">Local de Partida</label>
-                        <input type="text" id="start-location" placeholder="Insira o local de partida">
-                    </div>
-                    <div class="form-group">
-                        <label for="end-location">Local de Chegada</label>
-                        <input type="text" id="end-location" placeholder="Insira o local de chegada">
-                    </div>
-                </div>
+            <form class="modal-form" method="post" action="{% url 'route-add' %}">
+                {% csrf_token %}
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="route-vehicle-plate">Placa do Veículo</label>
-                        <select id="route-vehicle-plate">
-                            <option value="">Selecione um veículo</option>
-                            <option value="ABC-1234">ABC-1234</option>
-                            <option value="DEF-5678">DEF-5678</option>
-                            <option value="GHI-9012">GHI-9012</option>
-                        </select>
+                        <label for="{{ route_form.start_location.id_for_label }}">Local de Partida</label>
+                        {{ route_form.start_location }}
                     </div>
                     <div class="form-group">
-                        <label for="route-driver-name">Nome do Motorista</label>
-                        <select id="route-driver-name">
-                            <option value="">Selecione um motorista</option>
-                            <option value="John Smith">John Smith</option>
-                            <option value="Sarah Johnson">Sarah Johnson</option>
-                            <option value="Mike Davis">Mike Davis</option>
-                        </select>
+                        <label for="{{ route_form.end_location.id_for_label }}">Local de Chegada</label>
+                        {{ route_form.end_location }}
                     </div>
                 </div>
-
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="route-start-time">Início Programado</label>
-                        <input type="text" id="route-start-time" class="datetimepicker" placeholder="dd/mm/aaaa --:--">
+                        <label for="{{ route_form.vehicle.id_for_label }}">Placa do Veículo</label>
+                        {{ route_form.vehicle }}
                     </div>
                     <div class="form-group">
-                        <label for="route-end-time">Fim Programado</label>
-                        <input type="text" id="route-end-time" class="datetimepicker" placeholder="dd/mm/aaaa --:--">
+                        <label for="{{ route_form.driver.id_for_label }}">Nome do Motorista</label>
+                        {{ route_form.driver }}
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ route_form.start_time.id_for_label }}">Início Programado</label>
+                        {{ route_form.start_time }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ route_form.end_time.id_for_label }}">Fim Programado</label>
+                        {{ route_form.end_time }}
                     </div>
                 </div>
 
