@@ -1,0 +1,236 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciamento de Veículos</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="page-header">
+            <div class="header-info">
+                <h1>Gerenciamento de Veículos</h1>
+                <p>Monitore e gerencie os veículos da sua frota</p>
+            </div>
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">← Voltar ao Dashboard</a>
+        </header>
+
+        <main class="dashboard-content">
+            <section class="card">
+                <div class="table-header">
+                    <h2>Todos os Veículos</h2>
+                    <button class="btn btn-primary" id="open-add-vehicle-modal">+ Adicionar Veículo</button>
+                </div>
+
+                {% if messages %}
+                    <div class="messages">
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <table class="vehicle-table">
+                    <thead>
+                        <tr>
+                            <th>Placa</th>
+                            <th>Modelo</th>
+                            <th>Ano</th>
+                            <th>Status</th>
+                            <th>Motorista</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for vehicle in vehicles %}
+                        {% with vehicle_status=vehicle.dynamic_status vehicle_status_slug=vehicle.dynamic_status_slug %}
+                        <tr class="{% if vehicle_status_slug == 'desativado' %}vehicle-disabled{% endif %}" 
+                            data-pk="{{ vehicle.pk }}" 
+                            data-plate="{{ vehicle.plate }}"
+                            data-model="{{ vehicle.model }}"
+                            data-year="{{ vehicle.year }}"
+                            data-mileage="{{ vehicle.mileage }}"
+                            data-status="{{ vehicle_status_slug }}"
+                            data-status_display="{{ vehicle_status }}"
+                            data-driver_name="{{ vehicle.driver.full_name|default:'Não atribuído' }}"
+                            data-acquisition_date="{{ vehicle.acquisition_date|date:'d/m/Y' }}">
+                            
+                            <td><span>🚚</span> {{ vehicle.plate }}</td>
+                            <td>{{ vehicle.model }}</td>
+                            <td>{{ vehicle.year }}</td>
+                            <td><span class="status-tag status-{{ vehicle_status_slug }}">{{ vehicle_status }}</span></td>
+                            <td>
+                                {% if vehicle.driver %}
+                                    <span>👤</span> {{ vehicle.driver.full_name }}
+                                {% else %}
+                                    Não atribuído
+                                {% endif %}
+                            </td>
+                            <td class="actions">
+                                <a href="#" class="action-view" title="Ver Detalhes">👁️</a>
+                                {% if vehicle_status_slug != 'desativado' %}
+                                    <a href="#" class="action-edit" title="Editar">✏️</a>
+                                    <a href="#" class="action-delete" title="Excluir">🗑️</a>
+                                {% endif %}
+                            </td>
+                            <td style="display: none;">
+                                <div class="vehicle-maintenance-data">
+                                    {% for maint in vehicle.maintenance_set.all %}
+                                        <div class="maint-item" data-maint-pk="{{ maint.pk }}" data-date="{{ maint.start_date|date:'d/m/Y' }}" data-service="{{ maint.service_type }}" data-start_date="{{ maint.start_date|date:'d/m/Y H:i' }}" data-end_date="{{ maint.end_date|date:'d/m/Y H:i' }}" data-mechanic_shop_name="{{ maint.mechanic_shop_name }}" data-estimated_cost="{{ maint.estimated_cost }}" data-current_mileage="{{ maint.current_mileage }}" data-notes="{{ maint.notes }}"></div>
+                                    {% endfor %}
+                                </div>
+                                <div class="vehicle-route-data">
+                                    {% for route in vehicle.route_set.all %}
+                                        <div class="route-item" data-route-pk="{{ route.pk }}" data-start_location="{{ route.start_location }}" data-end_location="{{ route.end_location }}" data-start_time="{{ route.start_time|date:'d/m/Y H:i' }}" data-end_time="{{ route.end_time|date:'d/m/Y H:i' }}" data-driver-name="{{ route.driver.full_name|default:'N/A' }}" data-status-display="{{ route.dynamic_status }}" data-status-slug="{{ route.dynamic_status|slugify }}"></div>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endwith %}
+                        {% empty %}
+                        <tr><td colspan="6" style="text-align: center;">Nenhum veículo cadastrado.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <div class="modal-overlay" id="add-vehicle-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="vehicle-modal-title">Adicionar Novo Veículo</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form method="post" id="vehicle-form">
+                {% csrf_token %}
+                {{ add_form.as_p }}
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary close-modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="vehicle-submit-button">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="modal-overlay" id="deactivate-vehicle-modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2>Desativar Veículo</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form method="post" id="deactivate-form">
+                {% csrf_token %}
+                <p>Você tem certeza que deseja desativar este veículo?</p>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary close-modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Sim, Desativar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="modal-overlay" id="vehicle-details-modal">
+        <div class="modal-content details-modal">
+            <div class="modal-header">
+                <div class="details-header-info">
+                    <span class="details-icon">🚚</span>
+                    <div>
+                        <h2 id="details-plate"></h2>
+                        <p id="details-model-year"></p>
+                    </div>
+                </div>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="details-section">
+                <h4>Status Atual</h4>
+                <p><span id="details-status-tag" class="status-tag"></span></p>
+            </div>
+            <div class="details-section">
+                <h4>Informações do Veículo</h4>
+                <div class="info-grid">
+                    <div class="info-item"><small>Modelo</small><strong id="details-model"></strong></div>
+                    <div class="info-item"><small>Ano</small><strong id="details-year"></strong></div>
+                    <div class="info-item"><small>Quilometragem</small><strong id="details-mileage"></strong></div>
+                    <div class="info-item"><small>Última Manutenção</small><strong id="details-last-maintenance"></strong></div>
+                </div>
+            </div>
+            <div class="details-section">
+                <h4>Motorista Designado</h4>
+                <div class="driver-card">
+                    <div class="driver-avatar avatar-blue" id="details-driver-avatar"></div>
+                    <div>
+                        <strong id="details-driver-name"></strong>
+                        <small>Motorista Principal</small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer details-footer">
+                <button class="btn btn-secondary" id="view-maintenance-history-btn">Histórico de Manutenção</button>
+                <button class="btn btn-primary" id="view-route-history-btn">Histórico de Viagens</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="history-vehicle-modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 id="history-modal-title">Histórico de Manutenção</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div id="history-list-container"><p>A carregar histórico...</p></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="back-to-details-btn">Voltar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="maintenance-details-modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Detalhes da Manutenção</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="details-section" id="maintenance-details-content"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="back-to-history-btn">Voltar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="route-history-modal">
+        <div class="modal-content" style="max-width: 550px;">
+            <div class="modal-header">
+                <h2 id="route-history-modal-title">Histórico de Viagens</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div id="route-list-container"><p>A carregar histórico...</p></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="back-to-details-from-route-btn">Voltar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="route-details-modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Detalhes da Viagem</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="details-section" id="route-details-content"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="back-to-route-history-btn">Voltar</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
+    <script src="{% static 'js/vehicles.js' %}"></script>
+</body>
+</html>
