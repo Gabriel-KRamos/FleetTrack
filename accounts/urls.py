@@ -12,7 +12,6 @@ urlpatterns = [
     path('signup/', SignUpView.as_view(), name='signup'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     
-    # Novas rotas para as ações com motoristas (lugar correto)
     path('drivers/add/', DriverCreateView.as_view(), name='driver-add'),
     path('drivers/<int:pk>/update/', DriverUpdateView.as_view(), name='driver-update'),
     path('drivers/<int:pk>/deactivate/', DriverDeactivateView.as_view(), name='driver-deactivate'),

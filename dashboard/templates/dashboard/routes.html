@@ -1,0 +1,131 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planejamento de Rotas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="page-header">
+            <div class="header-info">
+                <h1>Planejamento de Rotas</h1>
+                <p>Otimize e gerencie suas rotas de entrega</p>
+            </div>
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">← Voltar ao Dashboard</a>
+        </header>
+
+        <section class="route-stat-cards">
+            <div class="route-stat-card"><div class="stat-icon purple">🗺️</div><div class="stat-info"><span class="value">{{ stats.total }}</span><span class="title">Total de Rotas</span></div></div>
+            <div class="route-stat-card"><div class="stat-icon green">🟢</div><div class="stat-info"><span class="value">{{ stats.active }}</span><span class="title">Ativas</span></div></div>
+            <div class="route-stat-card"><div class="stat-icon blue">📅</div><div class="stat-info"><span class="value">{{ stats.planned }}</span><span class="title">Planejadas</span></div></div>
+            <div class="route-stat-card"><div class="stat-icon light-green">✅</div><div class="stat-info"><span class="value">{{ stats.completed }}</span><span class="title">Concluídas</span></div></div>
+            <div class="route-stat-card"><div class="stat-icon red">❌</div><div class="stat-info"><span class="value">{{ stats.cancelled }}</span><span class="title">Canceladas</span></div></div>
+        </section>
+
+        <main class="dashboard-content">
+            <section class="card">
+                <div class="table-header">
+                    <h2>Rotas</h2>
+                    <button class="btn btn-primary" id="open-add-route-modal">+ Adicionar Rota</button>
+                </div>
+
+                <form method="get" class="filter-bar">
+                    <div class="search-container">
+                        <input type="text" name="search" class="search-input" placeholder="Buscar por rota, motorista, veículo..." value="{{ search_query }}">
+                    </div>
+                    <select name="status" class="status-filter" onchange="this.form.submit()">
+                        <option value="">Todos os Status</option>
+                        {% for value, display in status_choices %}
+                            <option value="{{ value }}" {% if value == status_filter %}selected{% endif %}>{{ display }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </section>
+
+            <section class="route-cards-grid">
+                {% for route in routes %}
+                <div class="route-card" 
+                    data-pk="{{ route.pk }}"
+                    data-start_location="{{ route.start_location }}"
+                    data-end_location="{{ route.end_location }}"
+                    data-vehicle_id="{{ route.vehicle.pk }}"
+                    data-driver_id="{{ route.driver.pk }}"
+                    data-start_time="{{ route.start_time|date:'d/m/Y H:i' }}"
+                    data-end_time="{{ route.end_time|date:'d/m/Y H:i' }}">
+                    <div class="route-card-header">
+                        <h5>{{ route.start_location }} → {{ route.end_location }}</h5>
+                        <span class="status-tag-route status-{{ route.dynamic_status_slug|slugify }}">{{ route.dynamic_status }}</span>
+                    </div>
+                    <div class="route-card-body">
+                        <p><strong>Motorista:</strong> {{ route.driver.full_name|default:'N/A' }}</p>
+                        <p><strong>Veículo:</strong> {{ route.vehicle.plate|default:'N/A' }}</p>
+                        <p><strong>Início:</strong> {{ route.start_time|date:"d/m/Y H:i" }}</p>
+                    </div>
+                    <div class="route-card-progress">
+                        <span>Progresso</span>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" style="width: {{ route.progress_percentage }}%;"></div>
+                            <span>{{ route.progress_percentage }}%</span>
+                        </div>
+                    </div>
+                    <div class="route-card-footer">
+                        <button class="btn btn-secondary btn-small action-edit">✏️ Editar</button>
+                        
+                        {% if route.dynamic_status_slug == 'completed' or route.dynamic_status_slug == 'canceled' %}
+                            <button class="btn btn-danger btn-small action-cancel" disabled>❌ Cancelar</button>
+                        {% else %}
+                            <button class="btn btn-danger btn-small action-cancel">❌ Cancelar</button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <p style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary-color);">Nenhuma rota encontrada.</p>
+                {% endfor %}
+            </section>
+        </main>
+    </div>
+
+    <div class="modal-overlay" id="route-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="route-modal-title">Adicionar Nova Rota</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form method="post" id="route-form" class="modal-form">
+                {% csrf_token %}
+                {{ add_form.as_p }}
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary close-modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Rota</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="cancel-route-modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2>Cancelar Rota</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form method="post" id="cancel-form">
+                {% csrf_token %}
+                <p>Você tem certeza que deseja cancelar esta rota? Esta ação não pode ser desfeita.</p>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary close-modal">Não</button>
+                    <button type="submit" class="btn btn-danger">Sim, Cancelar Rota</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
+    <script src="{% static 'js/routes.js' %}"></script>
+</body>
+</html>

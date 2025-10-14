@@ -6,279 +6,129 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard de Gestão de Frotas</title>
-
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
 </head>
 
 <body>
     <div class="dashboard-container">
-        <header class="dashboard-header">
-            <div class="header-info">
-                <h1>Dashboard de Gestão de Frotas</h1>
-                <p>Monitore e gerencie sua frota de veículos em tempo real</p>
-            </div>
-            <a href="{% url 'logout' %}" class="btn btn-logout">
-                <span>Sair</span>
-                <span class="logout-icon">→</span>
+        <section class="nav-cards">
+            <a href="{% url 'vehicle-list' %}" class="nav-card color-blue">
+                <div class="nav-card-icon">🚗</div>
+                <h3>Gerenciamento de Veículos</h3>
+                <p>Gerencie sua frota de veículos</p>
+                <span class="nav-card-arrow">→</span>
             </a>
-        </header>
+            <a href="{% url 'driver-list' %}" class="nav-card color-green">
+                <div class="nav-card-icon">👤</div>
+                <h3>Gerenciamento de Motoristas</h3>
+                <p>Gerencie os perfis dos motoristas</p>
+                <span class="nav-card-arrow">→</span>
+            </a>
+            <a href="{% url 'route-list' %}" class="nav-card color-purple">
+                <div class="nav-card-icon">🗺️</div>
+                <h3>Planejamento de Rotas</h3>
+                <p>Otimize as rotas de entrega</p>
+                <span class="nav-card-arrow">→</span>
+            </a>
+            <a href="#" class="nav-card color-orange">
+                <div class="nav-card-icon">🛠️</div>
+                <h3>Manutenção</h3>
+                <p>Agende e acompanhe manutenções</p>
+                <span class="nav-card-arrow">→</span>
+            </a>
+        </section>
 
-        <main class="dashboard-content">
-            <section class="stat-cards">
-                <div class="card stat-card">
-                    <div class="stat-info">
-                        <span class="title">Total de Veículos</span>
-                        <span class="value">{{ total_vehicles }}</span>
+        <main class="dashboard-grid">
+            <div class="grid-card overview-card">
+                <div class="card-header">
+                    <h4>Resumo de Veículos</h4>
+                    <a href="{% url 'vehicle-list' %}">Ver Todos →</a>
+                </div>
+                <div class="overview-stats">
+                    <div class="stat-item color-light-blue">
+                        <span class="stat-value">{{ vehicle_overview.total }}</span>
+                        <span class="stat-label">Total de Veículos</span>
                     </div>
-                    <div class="stat-icon icon-blue">🚚</div>
-                </div>
-                <div class="card stat-card">
-                    <div class="stat-info">
-                        <span class="title">Veículos em Rota</span>
-                        <span class="value">{{ vehicles_on_route }}</span>
+                    <div class="stat-item color-light-green">
+                        <span class="stat-value">{{ vehicle_overview.available }}</span>
+                        <span class="stat-label">Disponíveis</span>
                     </div>
-                    <div class="stat-icon icon-green">〰️</div>
                 </div>
-                <div class="card stat-card">
-                    <div class="stat-info">
-                        <span class="title">Em Manutenção</span>
-                        <span class="value">{{ vehicles_in_maintenance }}</span>
-                    </div>
-                    <div class="stat-icon icon-orange">🛠️</div>
-                </div>
-            </section>
-            
-            <section class="card map-card">
-                <div class="map-container">
-                    <div id="live-map"></div>
-                </div>
-                <div class="map-sidebar">
-                    <div class="sidebar-header">
-                        <h4>Motoristas em Rota ({{ active_routes|length }})</h4>
-                        <label class="live-toggle">
-                            <input type="checkbox" checked>
-                            <span></span>
-                            <p>Live Tracking</p>
-                        </label>
-                    </div>
-                    <ul class="driver-status-list">
-                        {% for route in active_routes %}
-                        <li>
-                            <div class="driver-avatar avatar-blue">{{ route.driver.full_name|slice:":1" }}</div>
-                            <div class="driver-info"><strong>{{ route.driver.full_name }}</strong></div>
-                            <span class="status-tag status-on-route">Em Rota</span>
-                        </li>
-                        {% empty %}
-                        <li>Nenhum motorista em rota no momento.</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            </section>
+                <ul class="overview-legend">
+                    <li><span class="legend-dot color-blue"></span>Em Uso <span class="legend-value">{{ vehicle_overview.in_use }}</span></li>
+                    <li><span class="legend-dot color-orange"></span>Manutenção <span class="legend-value">{{ vehicle_overview.maintenance }}</span></li>
+                    <li><span class="legend-dot color-red"></span>Indisponível <span class="legend-value">{{ vehicle_overview.unavailable }}</span></li>
+                </ul>
+            </div>
 
-            <section class="main-section">
-                <div class="card fleet-status-card">
-                    <h3>Status da Frota</h3>
-                    <div class="chart-container">
-                        <canvas id="fleetStatusChart"></canvas>
+            <div class="grid-card overview-card">
+                <div class="card-header">
+                    <h4>Resumo de Motoristas</h4>
+                    <a href="{% url 'driver-list' %}">Ver Todos →</a>
+                </div>
+                <div class="overview-stats">
+                    <div class="stat-item color-light-blue">
+                        <span class="stat-value">{{ driver_overview.total }}</span>
+                        <span class="stat-label">Total de Motoristas</span>
                     </div>
-                    <div class="chart-legend">
-                        {% with total=total_vehicles %}
-                            {% if total > 0 %}
-                                <div class="legend-item"><span class="dot" style="background-color: #4CAF50;"></span>
-                                    Disponível: {% widthratio chart_available total 100 %}%
-                                </div>
-                                <div class="legend-item"><span class="dot" style="background-color: #FFC107;"></span> 
-                                    Em Rota: {% widthratio chart_on_route total 100 %}%
-                                </div>
-                                <div class="legend-item"><span class="dot" style="background-color: #F44336;"></span> 
-                                    Em Manutenção: {% widthratio chart_in_maintenance total 100 %}%
-                                </div>
-                            {% else %}
-                                <div class="legend-item"><span class="dot" style="background-color: #4CAF50;"></span>
-                                    Disponível: 0%
-                                </div>
-                            {% endif %}
-                        {% endwith %}
+                    <div class="stat-item color-light-green">
+                        <span class="stat-value">{{ driver_overview.active }}</span>
+                        <span class="stat-label">Ativos</span>
                     </div>
                 </div>
+                 <ul class="overview-legend">
+                    <li><span class="legend-dot color-green"></span>Ativo <span class="legend-value">{{ driver_overview.active }}</span></li>
+                    <li><span class="legend-dot color-red"></span>Inativo <span class="legend-value">{{ driver_overview.inactive }}</span></li>
+                </ul>
+            </div>
 
-                <div class="card recent-alerts-card">
-                    <h3>Manutenções Atuais</h3>
-                    <ul class="alerts-list">
-                        {% for maint in current_maintenances %}
-                        <li>
-                            <span>🛠️</span>
-                            <div class="alert-text">{{ maint.vehicle.plate }} - {{ maint.service_type }}</div>
-                            <small>Até {{ maint.end_date|date:"d/m" }}</small>
-                        </li>
-                        {% empty %}
-                        <li>Nenhum veículo em manutenção no momento.</li>
-                        {% endfor %}
-                    </ul>
+            <div class="grid-card activity-card">
+                <div class="card-header">
+                    <h4>Atividade Recente</h4>
+                    <a href="#">Ver Tudo →</a>
                 </div>
+                <ul class="activity-list">
+                    {% for route in recent_routes %}
+                    <li>
+                        <div class="activity-icon color-blue">🚗</div>
+                        <p>Rota do veículo <strong>{{ route.vehicle.plate }}</strong> finalizada.</p>
+                    </li>
+                    {% endfor %}
+                    {% for maint in recent_maintenances %}
+                    <li>
+                        <div class="activity-icon color-green">🛠️</div>
+                         <p>Manutenção <strong>{{ maint.service_type }}</strong> concluída para <strong>{{ maint.vehicle.plate }}</strong>.</p>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
 
-                <div class="card maintenance-card">
-                    <h3>Próximas Manutenções Agendadas</h3>
-                    <table class="maintenance-table">
-                        <thead>
-                            <tr>
-                                <th>VEÍCULO</th>
-                                <th>SERVIÇO</th>
-                                <th>DATA</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for maint in upcoming_maintenances %}
-                            <tr>
-                                <td>{{ maint.vehicle.plate }}</td>
-                                <td>{{ maint.service_type }}</td>
-                                <td>{{ maint.start_date|date:"d/m/Y" }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="3" style="text-align: center;">Nenhuma manutenção agendada.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+            <div class="grid-card maintenance-card">
+                <div class="card-header">
+                    <h4>Próximas Manutenções</h4>
+                    <a href="#">Agendar +</a>
                 </div>
-            </section>
+                <ul class="maintenance-list">
+                    {% for maint in upcoming_maintenances %}
+                    <li>
+                        <div class="maintenance-icon">🛠️</div>
+                        <div class="maintenance-info">
+                            <p><strong>{{ maint.vehicle.plate }}</strong> - {{ maint.service_type }}</p>
+                            <small>{{ maint.start_date|date:"d/m/Y" }}</small>
+                        </div>
+                    </li>
+                    {% empty %}
+                    <p style="text-align: center; color: var(--text-secondary-color);">Nenhuma manutenção agendada.</p>
+                    {% endfor %}
+                </ul>
+            </div>
         </main>
-
-        <footer class="dashboard-actions">
-            <button class="btn btn-primary" id="open-route-modal">+ Registrar Rota</button>
-            <a href="{% url 'vehicle-list' %}"><button class="btn btn-success">Veículos</button></a>
-            <a href="{% url 'driver-list' %}"><button class="btn btn-success">Motoristas</button></a>
-            <button class="btn btn-warning" id="open-maintenance-modal">Manutenção</button>
-        </footer>
     </div>
 
-    <div class="modal-overlay" id="maintenance-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Agendar Manutenção</h2>
-                <button class="close-modal" id="close-modal-btn">&times;</button>
-            </div>
-            <form class="modal-form" method="post" action="{% url 'maintenance-add' %}">
-                {% csrf_token %}
-                <div class="form-group">
-                    <label for="{{ maintenance_form.vehicle.id_for_label }}">Veículo</label>
-                    {{ maintenance_form.vehicle }}
-                </div>
-                <div class="form-group">
-                    <label for="{{ maintenance_form.service_type.id_for_label }}">Tipo de Serviço</label>
-                    {{ maintenance_form.service_type }}
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="{{ maintenance_form.start_date.id_for_label }}">Início</label>
-                        {{ maintenance_form.start_date }}
-                    </div>
-                    <div class="form-group">
-                        <label for="{{ maintenance_form.end_date.id_for_label }}">Fim</label>
-                        {{ maintenance_form.end_date }}
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="{{ maintenance_form.mechanic_shop_name.id_for_label }}">Nome da Mecânica</label>
-                        {{ maintenance_form.mechanic_shop_name }}
-                    </div>
-                    <div class="form-group">
-                        <label for="{{ maintenance_form.current_mileage.id_for_label }}">Quilometragem Atual</label>
-                        {{ maintenance_form.current_mileage }}
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="{{ maintenance_form.estimated_cost.id_for_label }}">Custo Estimado (R$)</label>
-                    {{ maintenance_form.estimated_cost }}
-                </div>
-                <div class="form-group">
-                    <label for="{{ maintenance_form.notes.id_for_label }}">Observações</label>
-                    {{ maintenance_form.notes }}
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary close-modal">Cancelar</button>
-                    <button type="submit" class="btn btn-warning">Agendar Manutenção</button>
-                </div>
-            </form>
-        </div>
-    </div>
-    <div class="modal-overlay" id="register-route-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Registrar Nova Rota</h2>
-                <button class="close-modal">&times;</button>
-            </div>
-            <form class="modal-form" method="post" action="{% url 'route-add' %}">
-                {% csrf_token %}
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="{{ route_form.start_location.id_for_label }}">Local de Partida</label>
-                        {{ route_form.start_location }}
-                    </div>
-                    <div class="form-group">
-                        <label for="{{ route_form.end_location.id_for_label }}">Local de Chegada</label>
-                        {{ route_form.end_location }}
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="{{ route_form.vehicle.id_for_label }}">Placa do Veículo</label>
-                        {{ route_form.vehicle }}
-                    </div>
-                    <div class="form-group">
-                        <label for="{{ route_form.driver.id_for_label }}">Nome do Motorista</label>
-                        {{ route_form.driver }}
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="{{ route_form.start_time.id_for_label }}">Início Programado</label>
-                        {{ route_form.start_time }}
-                    </div>
-                    <div class="form-group">
-                        <label for="{{ route_form.end_time.id_for_label }}">Fim Programado</label>
-                        {{ route_form.end_time }}
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary close-modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Registrar Rota</button>
-                </div>
-            </form>
-        </div>
-    </div>
-    
-    <script>
-        const routeData = [
-            {% for route in active_routes %}
-            {
-                "lat": {{ route.lat }},
-                "lng": {{ route.lng }},
-                "driver": "{{ route.driver.full_name|escapejs }}",
-                "plate": "{{ route.vehicle.plate|escapejs }}"
-            }{% if not forloop.last %},{% endif %}
-            {% endfor %}
-        ];
-
-        // Nova variável com os dados para o gráfico
-        const chartData = {
-            available: {{ chart_available }},
-            on_route: {{ chart_on_route }},
-            in_maintenance: {{ chart_in_maintenance }}
-        };
-    </script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
     <script src="{% static 'js/dashboard.js' %}"></script>
 </body>
 

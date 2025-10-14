@@ -1,10 +1,7 @@
-# dashboard/models.py
-
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
 
-# ... (Driver continua igual) ...
 class Driver(models.Model):
     full_name = models.CharField(max_length=100, verbose_name="Nome Completo")
     email = models.EmailField(unique=True, verbose_name="Email")
@@ -20,6 +17,8 @@ class Driver(models.Model):
 class Vehicle(models.Model):
     STATUS_CHOICES = [
         ('available', 'Disponível'),
+        ('on_route', 'Em Rota'),
+        ('maintenance', 'Em Manutenção'),
         ('disabled', 'Desativado'),
     ]
     plate = models.CharField(max_length=10, unique=True, verbose_name="Placa")
@@ -29,10 +28,9 @@ class Vehicle(models.Model):
     mileage = models.PositiveIntegerField(verbose_name="Quilometragem")
     driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Motorista")
     acquisition_date = models.DateField(verbose_name="Data de Aquisição")
-    
-    # NOVOS CAMPOS PARA A POSIÇÃO ATUAL DO VEÍCULO
-    latitude = models.FloatField(null=True, blank=True)
-    longitude = models.FloatField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.model} - {self.plate}"
 
     @property
     def dynamic_status(self):
@@ -45,14 +43,24 @@ class Vehicle(models.Model):
             return "Em Rota"
         return "Disponível"
 
+    # --- INÍCIO DA CORREÇÃO ---
     @property
     def dynamic_status_slug(self):
-        return slugify(self.dynamic_status)
+        """
+        Retorna um identificador fixo e confiável para o status dinâmico do veículo.
+        Esta é a correção principal para garantir consistência.
+        """
+        now = timezone.now()
+        if self.status == 'disabled':
+            return 'disabled'
+        if self.maintenance_set.filter(start_date__lte=now, end_date__gte=now).exists():
+            return 'maintenance'
+        if self.route_set.filter(start_time__lte=now, end_time__gte=now).exists():
+            return 'on_route'
+        return 'available'
+    # --- FIM DA CORREÇÃO ---
 
-    def __str__(self):
-        return f"{self.model} - {self.plate}"
 
-# ... (Maintenance e Route continuam iguais) ...
 class Maintenance(models.Model):
     STATUS_CHOICES = [
         ('scheduled', 'Agendada'),
@@ -87,21 +95,43 @@ class Route(models.Model):
     end_time = models.DateTimeField(verbose_name="Fim Programado")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='scheduled', verbose_name="Status")
 
-    start_lat = models.FloatField(null=True, blank=True)
-    start_lng = models.FloatField(null=True, blank=True)
-    end_lat = models.FloatField(null=True, blank=True)
-    end_lng = models.FloatField(null=True, blank=True)
-
     @property
     def dynamic_status(self):
         now = timezone.now()
         if self.status in ['completed', 'canceled']:
             return self.get_status_display()
-        if self.end_time < now:
+        if self.end_time < now and self.status != 'canceled':
             return "Concluída"
         if self.start_time <= now < self.end_time:
             return "Em Andamento"
-        return self.get_status_display()
+        return "Agendada"
+
+    @property
+    def dynamic_status_slug(self):
+        status_display = self.dynamic_status
+        if status_display == "Concluída":
+            return "completed"
+        if status_display == "Em Andamento":
+            return "in_progress"
+        if status_display == "Agendada":
+            return "scheduled"
+        if status_display == "Cancelada":
+            return "canceled"
+        return self.status
+
+    @property
+    def progress_percentage(self):
+        now = timezone.now()
+        if now >= self.end_time:
+            return 100
+        if now < self.start_time:
+            return 0
+        total_duration = (self.end_time - self.start_time).total_seconds()
+        elapsed_duration = (now - self.start_time).total_seconds()
+        if total_duration <= 0:
+            return 100
+        percentage = (elapsed_duration / total_duration) * 100
+        return min(100, int(percentage))
 
     def __str__(self):
         return f"Rota de {self.start_location} para {self.end_location} ({self.start_time.strftime('%d/%m/%Y')})"

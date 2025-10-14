@@ -10,7 +10,11 @@ from .views import (
     DriverUpdateView,
     DriverDeactivateView,
     MaintenanceCreateView,
-    RouteCreateView
+    RouteCreateView,
+    RouteListView,
+    VehicleUpdateView,
+    RouteUpdateView,
+    RouteCancelView
 )
 
 urlpatterns = [
@@ -25,4 +29,7 @@ urlpatterns = [
     path('drivers/<int:pk>/deactivate/', DriverDeactivateView.as_view(), name='driver-deactivate'),
     path('maintenance/add/', MaintenanceCreateView.as_view(), name='maintenance-add'),
     path('routes/add/', RouteCreateView.as_view(), name='route-add'),
+    path('routes/', RouteListView.as_view(), name='route-list'),
+    path('routes/<int:pk>/update/', RouteUpdateView.as_view(), name='route-update'),
+    path('routes/<int:pk>/cancel/', RouteCancelView.as_view(), name='route-cancel'),
 ]

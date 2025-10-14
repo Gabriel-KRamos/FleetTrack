@@ -17,11 +17,11 @@ class SignUpView(View):
     def post(self, request):
         form = SignUpForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            # Faz o login automático do usuário após o cadastro
-            login(request, user)
-            # Redireciona para o dashboard
-            return redirect('dashboard')
+            form.save()
+            # Adiciona uma mensagem de sucesso
+            messages.success(request, 'Cadastro realizado com sucesso! Por favor, faça o login.')
+            # Redireciona para a página de login
+            return redirect('login')
 
         # Se o formulário não for válido, renderiza a página novamente com os erros
         return render(request, 'accounts/signup.html', {'form': form})

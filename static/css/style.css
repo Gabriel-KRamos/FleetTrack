@@ -25,6 +25,7 @@ body {
     width: 100%;
     max-width: 400px;
     text-align: center;
+    box-sizing: border-box; 
 }
 
 .login-header {
@@ -190,29 +191,25 @@ body {
     text-decoration: underline;
 }
 
-/* Container para o campo de texto e o ícone */
 .input-with-icon {
     position: relative;
     display: flex;
     align-items: center;
 }
 
-/* Estilo do ícone */
 .input-with-icon .input-icon {
     position: absolute;
-    left: 15px; /* Distância da borda esquerda */
+    left: 15px; 
     color: #999;
     font-size: 16px;
 }
 
-/* Ajuste no campo de texto para não sobrepor o ícone */
 .input-with-icon input {
-    padding-left: 45px; /* Adiciona um espaço à esquerda no texto */
+    padding-left: 45px; 
 }
 
-/* Estilo para a caixinha de "termos e condições" */
 .terms-agreement {
-    justify-content: flex-start; /* Alinha à esquerda */
+    justify-content: flex-start; 
     gap: 10px;
     font-size: 13px;
     color: #555;
@@ -230,4 +227,10 @@ body {
 
 .terms-agreement a:hover {
     text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+    .login-box {
+        padding: 20px;
+    }
 }
