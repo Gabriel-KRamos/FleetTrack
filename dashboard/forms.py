@@ -29,10 +29,13 @@ class MaintenanceForm(forms.ModelForm):
     class Meta:
         model = Maintenance
         fields = [
-            'vehicle', 'service_type', 'start_date', 'end_date', 
+            'vehicle', 'service_type', 'start_date', 'end_date',
             'mechanic_shop_name', 'estimated_cost', 'current_mileage', 'notes'
         ]
-    
+        widgets = {
+            'notes': forms.Textarea(attrs={'rows': 2}),
+        }
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['vehicle'].queryset = Vehicle.objects.exclude(status='disabled')
@@ -48,12 +51,26 @@ class MaintenanceForm(forms.ModelForm):
                 vehicle=vehicle,
                 start_time__lt=end_date,
                 end_time__gt=start_date
-            )
+            ).exclude(pk=self.instance.pk if self.instance else None)
             if conflicting_routes.exists():
                 raise forms.ValidationError(
                     f"Conflito de agendamento: O veículo {vehicle.plate} já está em uma rota neste período."
                 )
         return cleaned_data
+
+class MaintenanceCompletionForm(forms.ModelForm):
+    actual_end_date = forms.DateTimeField(
+        label="Data de Conclusão Real",
+        input_formats=['%d/%m/%Y %H:%M'],
+        widget=forms.DateTimeInput(attrs={'type': 'text', 'class': 'datetimepicker', 'placeholder': 'dd/mm/aaaa --:--'})
+    )
+    class Meta:
+        model = Maintenance
+        fields = ['actual_cost', 'actual_end_date']
+        labels = {
+            'actual_cost': 'Custo Final'
+        }
+
 
 class DriverForm(forms.ModelForm):
     class Meta:
@@ -98,7 +115,6 @@ class RouteForm(forms.ModelForm):
                 raise forms.ValidationError("A data de fim deve ser posterior à data de início.")
 
             if vehicle:
-                # 1. Verifica se o VEÍCULO está em outra ROTA no mesmo período
                 conflicting_routes = Route.objects.filter(
                     vehicle=vehicle,
                     start_time__lt=end_time,
@@ -109,19 +125,17 @@ class RouteForm(forms.ModelForm):
                         f"Conflito: O veículo {vehicle.plate} já está agendado para outra rota neste período."
                     )
                 
-                # 2. Verifica se o VEÍCULO está em MANUTENÇÃO no mesmo período
                 conflicting_maintenances = Maintenance.objects.filter(
                     vehicle=vehicle,
                     start_date__lt=end_time,
                     end_date__gt=start_time
-                )
+                ).exclude(pk=self.instance.pk if self.instance else None)
                 if conflicting_maintenances.exists():
                     raise forms.ValidationError(
                         f"Conflito: O veículo {vehicle.plate} está agendado para manutenção neste período."
                     )
 
             if driver:
-                # 3. Verifica se o MOTORISTA está em outra ROTA no mesmo período
                 conflicting_driver_routes = Route.objects.filter(
                     driver=driver,
                     start_time__lt=end_time,

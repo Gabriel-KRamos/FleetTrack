@@ -73,7 +73,7 @@
                         <thead>
                             <tr>
                                 <th>Motorista</th>
-                                <th>Contato</th>
+                                <th>Email</th>
                                 <th>CNH</th>
                                 <th>Status</th>
                                 <th>Data de Admissão</th>
@@ -99,12 +99,7 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td>
-                                    <div class="contact-info">
-                                        <span>{{ driver.email }}</span>
-                                        <small>{{ driver.phone_number|default:'(não informado)' }}</small>
-                                    </div>
-                                </td>
+                                <td>{{ driver.email }}</td>
                                 <td>
                                     <span class="license-tag">{{ driver.license_number }}</span>
                                 </td>

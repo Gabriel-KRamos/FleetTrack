@@ -429,3 +429,7 @@ body {
 @media (max-width: 768px) {
     .route-cards-grid { grid-template-columns: 1fr; }
 }
+.modal-form-grid textarea {
+    min-height: 60px;
+    resize: none;
+}

@@ -10,11 +10,15 @@ from .views import (
     DriverUpdateView,
     DriverDeactivateView,
     MaintenanceCreateView,
+    MaintenanceListView,
+    MaintenanceUpdateView,
+    MaintenanceCancelView,
+    MaintenanceCompleteView,
     RouteCreateView,
     RouteListView,
-    VehicleUpdateView,
     RouteUpdateView,
-    RouteCancelView
+    RouteCancelView,
+    RouteReactivateView
 )
 
 urlpatterns = [
@@ -27,9 +31,14 @@ urlpatterns = [
     path('drivers/add/', DriverCreateView.as_view(), name='driver-add'),
     path('drivers/<int:pk>/update/', DriverUpdateView.as_view(), name='driver-update'),
     path('drivers/<int:pk>/deactivate/', DriverDeactivateView.as_view(), name='driver-deactivate'),
-    path('maintenance/add/', MaintenanceCreateView.as_view(), name='maintenance-add'),
-    path('routes/add/', RouteCreateView.as_view(), name='route-add'),
     path('routes/', RouteListView.as_view(), name='route-list'),
+    path('routes/add/', RouteCreateView.as_view(), name='route-add'),
     path('routes/<int:pk>/update/', RouteUpdateView.as_view(), name='route-update'),
     path('routes/<int:pk>/cancel/', RouteCancelView.as_view(), name='route-cancel'),
+    path('routes/<int:pk>/reactivate/', RouteReactivateView.as_view(), name='route-reactivate'),
+    path('maintenance/', MaintenanceListView.as_view(), name='maintenance-list'),
+    path('maintenance/add/', MaintenanceCreateView.as_view(), name='maintenance-add'),
+    path('maintenance/<int:pk>/update/', MaintenanceUpdateView.as_view(), name='maintenance-update'),
+    path('maintenance/<int:pk>/cancel/', MaintenanceCancelView.as_view(), name='maintenance-cancel'),
+    path('maintenance/<int:pk>/complete/', MaintenanceCompleteView.as_view(), name='maintenance-complete'),
 ]

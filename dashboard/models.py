@@ -43,13 +43,8 @@ class Vehicle(models.Model):
             return "Em Rota"
         return "Disponível"
 
-    # --- INÍCIO DA CORREÇÃO ---
     @property
     def dynamic_status_slug(self):
-        """
-        Retorna um identificador fixo e confiável para o status dinâmico do veículo.
-        Esta é a correção principal para garantir consistência.
-        """
         now = timezone.now()
         if self.status == 'disabled':
             return 'disabled'
@@ -58,7 +53,6 @@ class Vehicle(models.Model):
         if self.route_set.filter(start_time__lte=now, end_time__gte=now).exists():
             return 'on_route'
         return 'available'
-    # --- FIM DA CORREÇÃO ---
 
 
 class Maintenance(models.Model):
@@ -66,6 +60,7 @@ class Maintenance(models.Model):
         ('scheduled', 'Agendada'),
         ('in_progress', 'Em Andamento'),
         ('completed', 'Concluída'),
+        ('canceled', 'Cancelada'),
     ]
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, verbose_name="Veículo")
     service_type = models.CharField(max_length=100, verbose_name="Tipo de Serviço")
@@ -73,12 +68,37 @@ class Maintenance(models.Model):
     end_date = models.DateTimeField(verbose_name="Data de Fim")
     mechanic_shop_name = models.CharField(max_length=100, verbose_name="Nome da Mecânica")
     estimated_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Custo Estimado")
+    actual_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Custo Final")
+    actual_end_date = models.DateTimeField(null=True, blank=True, verbose_name="Data de Conclusão Real")
     current_mileage = models.PositiveIntegerField(verbose_name="Quilometragem Atual")
     notes = models.TextField(blank=True, verbose_name="Observações")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='scheduled', verbose_name="Status")
 
     def __str__(self):
         return f"{self.service_type} - {self.vehicle.plate}"
+
+    @property
+    def dynamic_status(self):
+        now = timezone.now()
+        if self.status == 'completed':
+            return "Concluída"
+        if self.status == 'canceled':
+            return "Cancelada"
+        if self.end_date < now:
+            return "Atrasada"
+        if self.start_date <= now < self.end_date:
+            return "Em Andamento"
+        return "Agendada"
+
+    @property
+    def dynamic_status_slug(self):
+        status_display = self.dynamic_status
+        if status_display == "Concluída": return "completed"
+        if status_display == "Cancelada": return "canceled"
+        if status_display == "Em Andamento": return "in_progress"
+        if status_display == "Agendada": return "scheduled"
+        if status_display == "Atrasada": return "overdue"
+        return self.status
 
 class Route(models.Model):
     STATUS_CHOICES = [
@@ -109,27 +129,20 @@ class Route(models.Model):
     @property
     def dynamic_status_slug(self):
         status_display = self.dynamic_status
-        if status_display == "Concluída":
-            return "completed"
-        if status_display == "Em Andamento":
-            return "in_progress"
-        if status_display == "Agendada":
-            return "scheduled"
-        if status_display == "Cancelada":
-            return "canceled"
+        if status_display == "Concluída": return "completed"
+        if status_display == "Em Andamento": return "in_progress"
+        if status_display == "Agendada": return "scheduled"
+        if status_display == "Cancelada": return "canceled"
         return self.status
 
     @property
     def progress_percentage(self):
         now = timezone.now()
-        if now >= self.end_time:
-            return 100
-        if now < self.start_time:
-            return 0
+        if now >= self.end_time: return 100
+        if now < self.start_time: return 0
         total_duration = (self.end_time - self.start_time).total_seconds()
         elapsed_duration = (now - self.start_time).total_seconds()
-        if total_duration <= 0:
-            return 100
+        if total_duration <= 0: return 100
         percentage = (elapsed_duration / total_duration) * 100
         return min(100, int(percentage))
 

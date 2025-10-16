@@ -49,7 +49,7 @@
 
             <section class="route-cards-grid">
                 {% for route in routes %}
-                <div class="route-card" 
+                <div class="route-card status-{{ route.dynamic_status_slug }}" 
                     data-pk="{{ route.pk }}"
                     data-start_location="{{ route.start_location }}"
                     data-end_location="{{ route.end_location }}"
@@ -59,7 +59,7 @@
                     data-end_time="{{ route.end_time|date:'d/m/Y H:i' }}">
                     <div class="route-card-header">
                         <h5>{{ route.start_location }} → {{ route.end_location }}</h5>
-                        <span class="status-tag-route status-{{ route.dynamic_status_slug|slugify }}">{{ route.dynamic_status }}</span>
+                        <span class="status-tag-route status-{{ route.dynamic_status_slug }}">{{ route.dynamic_status }}</span>
                     </div>
                     <div class="route-card-body">
                         <p><strong>Motorista:</strong> {{ route.driver.full_name|default:'N/A' }}</p>
@@ -76,10 +76,15 @@
                     <div class="route-card-footer">
                         <button class="btn btn-secondary btn-small action-edit">✏️ Editar</button>
                         
-                        {% if route.dynamic_status_slug == 'completed' or route.dynamic_status_slug == 'canceled' %}
-                            <button class="btn btn-danger btn-small action-cancel" disabled>❌ Cancelar</button>
-                        {% else %}
+                        {% if route.dynamic_status_slug == 'canceled' %}
+                            <form action="{% url 'route-reactivate' route.pk %}" method="POST" style="margin: 0;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success btn-small">↻ Reativar</button>
+                            </form>
+                        {% elif route.dynamic_status_slug != 'completed' %}
                             <button class="btn btn-danger btn-small action-cancel">❌ Cancelar</button>
+                        {% else %}
+                            <button class="btn btn-danger btn-small" disabled>❌ Cancelar</button>
                         {% endif %}
                     </div>
                 </div>
