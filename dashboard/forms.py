@@ -1,3 +1,4 @@
+import re
 from django import forms
 from .models import Vehicle, Driver, Maintenance, Route
 from django.db.models import Q
@@ -5,13 +6,13 @@ from django.db.models import Q
 class VehicleForm(forms.ModelForm):
     class Meta:
         model = Vehicle
-        fields = ['plate', 'model', 'year', 'acquisition_date', 'mileage', 'status']
+        fields = ['plate', 'model', 'year', 'acquisition_date', 'initial_mileage', 'status']
         widgets = {
             'acquisition_date': forms.DateInput(attrs={'type': 'text', 'class': 'datepicker', 'placeholder': 'dd/mm/aaaa'}),
             'plate': forms.TextInput(attrs={'placeholder': 'ABC-1234'}),
             'model': forms.TextInput(attrs={'placeholder': 'ex: Ford Transit'}),
             'year': forms.NumberInput(attrs={'placeholder': 'ex: 2022'}),
-            'mileage': forms.NumberInput(attrs={'placeholder': 'ex: 50000'}),
+            'initial_mileage': forms.NumberInput(attrs={'placeholder': 'ex: 50000'}),
         }
 
 class MaintenanceForm(forms.ModelForm):
@@ -102,6 +103,22 @@ class RouteForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['vehicle'].queryset = Vehicle.objects.exclude(status='disabled')
         self.fields['driver'].queryset = Driver.objects.filter(is_active=True)
+
+    def clean_location(self, location_data):
+        pattern = re.compile(r'^.+,\s*[a-zA-Z]{2}$')
+        if location_data and not pattern.match(location_data.strip()):
+            raise forms.ValidationError(
+                "Formato inválido. Use 'Cidade, UF'. Ex: Joinville, SC"
+            )
+        return location_data
+
+    def clean_start_location(self):
+        start_location = self.cleaned_data.get('start_location')
+        return self.clean_location(start_location)
+
+    def clean_end_location(self):
+        end_location = self.cleaned_data.get('end_location')
+        return self.clean_location(end_location)
 
     def clean(self):
         cleaned_data = super().clean()

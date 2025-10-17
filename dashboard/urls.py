@@ -18,7 +18,8 @@ from .views import (
     RouteListView,
     RouteUpdateView,
     RouteCancelView,
-    RouteReactivateView
+    RouteReactivateView,
+    RouteCompleteView
 )
 
 urlpatterns = [
@@ -41,4 +42,5 @@ urlpatterns = [
     path('maintenance/<int:pk>/update/', MaintenanceUpdateView.as_view(), name='maintenance-update'),
     path('maintenance/<int:pk>/cancel/', MaintenanceCancelView.as_view(), name='maintenance-cancel'),
     path('maintenance/<int:pk>/complete/', MaintenanceCompleteView.as_view(), name='maintenance-complete'),
+    path('routes/<int:pk>/complete/', RouteCompleteView.as_view(), name='route-complete'),
 ]

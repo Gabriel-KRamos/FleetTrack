@@ -8,6 +8,20 @@ from .models import Vehicle, Driver, Maintenance, Route
 from .forms import VehicleForm, DriverForm, MaintenanceForm, RouteForm, MaintenanceCompletionForm
 from django.db.models import Q
 from django.utils.text import slugify
+from django.views.generic import RedirectView
+import googlemaps
+from django.conf import settings
+
+def calculate_route_distance(start_location, end_location):
+    try:
+        gmaps = googlemaps.Client(key=settings.GOOGLE_MAPS_API_KEY)
+        directions = gmaps.directions(start_location, end_location, mode="driving")
+        if directions:
+            distance_meters = directions[0]['legs'][0]['distance']['value']
+            return round(distance_meters / 1000, 2)
+    except Exception as e:
+        return f"Erro na API do Google: {e}"
+    return None
 
 class DashboardView(LoginRequiredMixin, View):
     def get(self, request):
@@ -73,7 +87,11 @@ class VehicleCreateView(LoginRequiredMixin, View):
             form.save()
             messages.success(request, 'Veículo adicionado com sucesso!')
         else:
-            for field, errors in form.errors.items(): messages.error(request, f"{form.fields[field].label}: {', '.join(errors)}")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    label = form.fields.get(field).label if field != '__all__' else ''
+                    message = f"{label}: {error}" if label else str(error)
+                    messages.error(request, message)
         return redirect('vehicle-list')
 
 class VehicleUpdateView(LoginRequiredMixin, View):
@@ -84,7 +102,11 @@ class VehicleUpdateView(LoginRequiredMixin, View):
             form.save()
             messages.success(request, 'Veículo atualizado com sucesso!')
         else:
-            for field, errors in form.errors.items(): messages.error(request, f"{vehicle.plate} - {form.fields[field].label}: {', '.join(errors)}")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    label = form.fields.get(field).label if field != '__all__' else ''
+                    message = f"{label}: {error}" if label else str(error)
+                    messages.error(request, message)
         return redirect('vehicle-list')
 
 class VehicleDeactivateView(LoginRequiredMixin, View):
@@ -102,7 +124,11 @@ class DriverCreateView(LoginRequiredMixin, View):
             form.save()
             messages.success(request, 'Motorista adicionado com sucesso!')
         else:
-            for field, errors in form.errors.items(): messages.error(request, f"Erro ao adicionar motorista: {', '.join(errors)}")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    label = form.fields.get(field).label if field != '__all__' else ''
+                    message = f"{label}: {error}" if label else str(error)
+                    messages.error(request, message)
         return redirect('driver-list')
 
 class DriverUpdateView(LoginRequiredMixin, View):
@@ -112,6 +138,12 @@ class DriverUpdateView(LoginRequiredMixin, View):
         if form.is_valid():
             form.save()
             messages.success(request, 'Motorista atualizado com sucesso!')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    label = form.fields.get(field).label if field != '__all__' else ''
+                    message = f"{label}: {error}" if label else str(error)
+                    messages.error(request, message)
         return redirect('driver-list')
 
 class DriverDeactivateView(LoginRequiredMixin, View):
@@ -130,9 +162,11 @@ class MaintenanceCreateView(LoginRequiredMixin, View):
             form.save()
             messages.success(request, 'Manutenção agendada com sucesso!')
         else:
-            error_text = ""
-            for field, errors in form.errors.items(): error_text += f"{field}: {', '.join(errors)} "
-            messages.error(request, f"Erro no agendamento: {error_text}")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    label = form.fields.get(field).label if field != '__all__' else ''
+                    message = f"{label}: {error}" if label else str(error)
+                    messages.error(request, message)
         return redirect('maintenance-list')
 
 class MaintenanceUpdateView(LoginRequiredMixin, View):
@@ -143,9 +177,11 @@ class MaintenanceUpdateView(LoginRequiredMixin, View):
             form.save()
             messages.success(request, 'Manutenção atualizada com sucesso!')
         else:
-            error_text = ""
-            for field, errors in form.errors.items(): error_text += f"{field}: {', '.join(errors)} "
-            messages.error(request, f"Erro ao atualizar: {error_text}")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    label = form.fields.get(field).label if field != '__all__' else ''
+                    message = f"{label}: {error}" if label else str(error)
+                    messages.error(request, message)
         return redirect('maintenance-list')
 
 class MaintenanceCancelView(LoginRequiredMixin, View):
@@ -209,12 +245,22 @@ class RouteCreateView(LoginRequiredMixin, View):
     def post(self, request):
         form = RouteForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Rota registrada com sucesso!')
+            route = form.save(commit=False)
+            distance_result = calculate_route_distance(route.start_location, route.end_location)
+
+            if isinstance(distance_result, str):
+                messages.error(request, f"Não foi possível criar a rota. {distance_result}")
+            else:
+                route.distance = distance_result
+                route.save()
+                messages.success(request, 'Rota registrada com sucesso!')
         else:
-            error_text = ""
-            for field, errors in form.errors.items(): error_text += f"{field}: {', '.join(errors)} "
-            messages.error(request, f"Erro ao registrar rota: {error_text}")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    label = form.fields.get(field).label if field != '__all__' else ''
+                    message = f"{label}: {error}" if label else str(error)
+                    messages.error(request, message)
+        
         return redirect('route-list')
 
 class RouteListView(LoginRequiredMixin, View):
@@ -243,12 +289,21 @@ class RouteUpdateView(LoginRequiredMixin, View):
         route = get_object_or_404(Route, pk=pk)
         form = RouteForm(request.POST, instance=route)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Rota atualizada com sucesso!')
+            updated_route = form.save(commit=False)
+            distance_result = calculate_route_distance(updated_route.start_location, updated_route.end_location)
+
+            if isinstance(distance_result, str):
+                messages.error(request, f"Não foi possível atualizar a rota. {distance_result}")
+            else:
+                updated_route.distance = distance_result
+                updated_route.save()
+                messages.success(request, 'Rota atualizada com sucesso!')
         else:
-            error_text = ""
-            for field, errors in form.errors.items(): error_text += f"{field}: {', '.join(errors)} "
-            messages.error(request, f"Erro ao atualizar rota: {error_text}")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    label = form.fields.get(field).label if field != '__all__' else ''
+                    message = f"{label}: {error}" if label else str(error)
+                    messages.error(request, message)
         return redirect('route-list')
 
 class RouteCancelView(LoginRequiredMixin, View):
@@ -266,3 +321,22 @@ class RouteReactivateView(LoginRequiredMixin, View):
         route.save()
         messages.success(request, 'Rota reativada com sucesso.')
         return redirect('route-list')
+        
+class RouteCompleteView(LoginRequiredMixin, RedirectView):
+    permanent = False
+    query_string = True
+    pattern_name = 'route-list'
+
+    def get_redirect_url(self, *args, **kwargs):
+        route = get_object_or_404(Route, pk=kwargs['pk'])
+        
+        if route.status != 'completed' and route.distance is not None:
+            route.status = 'completed'
+            route.save()
+            messages.success(self.request, f'Rota de {route.start_location} para {route.end_location} concluída. A quilometragem do veículo foi atualizada.')
+        elif route.status == 'completed':
+            messages.warning(self.request, 'Esta rota já foi concluída.')
+        else:
+            messages.error(self.request, 'Não foi possível concluir a rota, pois a distância não foi calculada.')
+
+        return super().get_redirect_url()

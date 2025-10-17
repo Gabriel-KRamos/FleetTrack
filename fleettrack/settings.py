@@ -10,7 +10,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
+GOOGLE_MAPS_API_KEY = 'AIzaSyBZ5PGvb6XbY3gXlUmfgX9osDdUHCE7OPk'
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -54,20 +54,18 @@ TEMPLATES = [
 WSGI_APPLICATION = 'fleettrack.wsgi.application'
 
 
-# Database
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'fleettrack_db', 
         'USER': 'root',
-        'PASSWORD': 'root', # Lembre-se de usar sua senha real aqui
+        'PASSWORD': 'root',
         'HOST': 'localhost',
         'PORT': '3306',
     }
 }
 
 
-# Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',

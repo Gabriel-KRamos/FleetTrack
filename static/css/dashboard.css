@@ -407,10 +407,10 @@ body {
 
 .route-card-header h5 { margin: 0; font-size: 1.1rem; }
 .status-tag-route { font-size: 0.8rem; font-weight: 600; padding: 0.25rem 0.75rem; border-radius: 999px; }
-.status-tag-route.status-em-andamento { background-color: #dbeafe; color: #1e40af; }
-.status-tag-route.status-agendada { background-color: #ffedd5; color: #9a3412; }
-.status-tag-route.status-concluida { background-color: #dcfce7; color: #166534; }
-.status-tag-route.status-cancelada { background-color: #fee2e2; color: #991b1b; }
+.status-tag-route.status-in_progress { background-color: #dbeafe; color: #1e40af; }
+.status-tag-route.status-scheduled { background-color: #ffedd5; color: #9a3412; }
+.status-tag-route.status-completed { background-color: #dcfce7; color: #166534; }
+.status-tag-route.status-canceled { background-color: #fee2e2; color: #991b1b; }
 
 .route-card-body p { margin: 0 0 0.5rem 0; font-size: 0.9rem; color: var(--text-secondary-color); }
 .route-card-body p strong { color: var(--text-color); }

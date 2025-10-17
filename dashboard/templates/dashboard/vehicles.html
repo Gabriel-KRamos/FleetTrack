@@ -95,7 +95,7 @@
                                 data-plate="{{ vehicle.plate }}"
                                 data-model="{{ vehicle.model }}"
                                 data-year="{{ vehicle.year }}"
-                                data-mileage="{{ vehicle.mileage }}"
+                                data-mileage="{{ vehicle.initial_mileage }}"
                                 data-status="{{ vehicle.status }}"
                                 data-status_display="{{ vehicle.get_status_display }}"
                                 data-driver_name="{{ vehicle.driver.full_name|default:'Não atribuído' }}"
@@ -178,7 +178,7 @@
                 <div class="info-grid">
                     <div class="info-item"><small>Modelo</small><strong id="details-model"></strong></div>
                     <div class="info-item"><small>Ano</small><strong id="details-year"></strong></div>
-                    <div class="info-item"><small>Quilometragem</small><strong id="details-mileage"></strong></div>
+                    <div class="info-item"><small>Quilometragem Inicial</small><strong id="details-mileage"></strong></div>
                     <div class="info-item"><small>Data de Aquisição</small><strong id="details-acquisition-date"></strong></div>
                 </div>
             </div>

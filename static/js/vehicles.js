@@ -54,7 +54,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.querySelector('#add-vehicle-modal #id_model').value = row.dataset.model;
                 document.querySelector('#add-vehicle-modal #id_year').value = row.dataset.year;
                 document.querySelector('#add-vehicle-modal #id_acquisition_date').value = row.dataset.acquisition_date;
-                document.querySelector('#add-vehicle-modal #id_mileage').value = row.dataset.mileage;
+                
+                document.querySelector('#add-vehicle-modal #id_initial_mileage').value = row.dataset.mileage;
+                
                 document.querySelector('#add-vehicle-modal #id_status').value = row.dataset.status;
                 if (vehicleForm) vehicleForm.action = `/vehicles/${pk}/update/`;
                 addVehicleModal.classList.add('active');

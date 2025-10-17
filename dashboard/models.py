@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Sum
 from django.utils import timezone
 from django.utils.text import slugify
 
@@ -25,9 +26,17 @@ class Vehicle(models.Model):
     model = models.CharField(max_length=50, verbose_name="Modelo")
     year = models.PositiveIntegerField(verbose_name="Ano")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='available', verbose_name="Status")
-    mileage = models.PositiveIntegerField(verbose_name="Quilometragem")
+    initial_mileage = models.PositiveIntegerField(verbose_name="Quilometragem Inicial")
     driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Motorista")
     acquisition_date = models.DateField(verbose_name="Data de Aquisição")
+
+    @property
+    def mileage(self):
+        completed_routes_mileage = self.route_set.filter(status='completed').aggregate(
+            total=Sum('distance')
+        )['total'] or 0
+        
+        return self.initial_mileage + int(completed_routes_mileage)
 
     def __str__(self):
         return f"{self.model} - {self.plate}"
@@ -35,25 +44,18 @@ class Vehicle(models.Model):
     @property
     def dynamic_status(self):
         now = timezone.now()
-        if self.status == 'disabled':
-            return "Desativado"
-        if self.maintenance_set.filter(start_date__lte=now, end_date__gte=now).exists():
-            return "Em Manutenção"
-        if self.route_set.filter(start_time__lte=now, end_time__gte=now).exists():
-            return "Em Rota"
-        return "Disponível"
+        if self.status == 'disabled': return "Desativado"
+        if self.maintenance_set.filter(start_date__lte=now, end_date__gte=now, status__in=['scheduled', 'in_progress']).exists(): return "Em Manutenção"
+        if self.route_set.filter(start_time__lte=now, end_time__gte=now, status='in_progress').exists(): return "Em Rota"
+        return self.get_status_display()
 
     @property
     def dynamic_status_slug(self):
-        now = timezone.now()
-        if self.status == 'disabled':
-            return 'disabled'
-        if self.maintenance_set.filter(start_date__lte=now, end_date__gte=now).exists():
-            return 'maintenance'
-        if self.route_set.filter(start_time__lte=now, end_time__gte=now).exists():
-            return 'on_route'
+        status = self.dynamic_status
+        if status == "Em Manutenção": return 'maintenance'
+        if status == "Em Rota": return 'on_route'
+        if status == "Desativado": return 'disabled'
         return 'available'
-
 
 class Maintenance(models.Model):
     STATUS_CHOICES = [
@@ -80,25 +82,20 @@ class Maintenance(models.Model):
     @property
     def dynamic_status(self):
         now = timezone.now()
-        if self.status == 'completed':
-            return "Concluída"
-        if self.status == 'canceled':
-            return "Cancelada"
-        if self.end_date < now:
-            return "Atrasada"
-        if self.start_date <= now < self.end_date:
-            return "Em Andamento"
+        if self.status in ['completed', 'canceled']: return self.get_status_display()
+        if self.end_date < now: return "Atrasada"
+        if self.start_date <= now < self.end_date: return "Em Andamento"
         return "Agendada"
 
     @property
     def dynamic_status_slug(self):
-        status_display = self.dynamic_status
-        if status_display == "Concluída": return "completed"
-        if status_display == "Cancelada": return "canceled"
-        if status_display == "Em Andamento": return "in_progress"
-        if status_display == "Agendada": return "scheduled"
-        if status_display == "Atrasada": return "overdue"
-        return self.status
+        status = self.dynamic_status
+        if status == "Atrasada": return "overdue"
+        if status == "Em Andamento": return "in_progress"
+        if status == "Agendada": return "scheduled"
+        if status == "Concluída": return "completed"
+        if status == "Cancelada": return "canceled"
+        return slugify(status)
 
 class Route(models.Model):
     STATUS_CHOICES = [
@@ -114,26 +111,25 @@ class Route(models.Model):
     start_time = models.DateTimeField(verbose_name="Início Programado")
     end_time = models.DateTimeField(verbose_name="Fim Programado")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='scheduled', verbose_name="Status")
+    distance = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Distância (km)")
+    fuel_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Custo de Combustível")
 
     @property
     def dynamic_status(self):
         now = timezone.now()
-        if self.status in ['completed', 'canceled']:
-            return self.get_status_display()
-        if self.end_time < now and self.status != 'canceled':
-            return "Concluída"
-        if self.start_time <= now < self.end_time:
-            return "Em Andamento"
+        if self.status in ['completed', 'canceled']: return self.get_status_display()
+        if self.end_time < now: return "Concluída"
+        if self.start_time <= now < self.end_time: return "Em Andamento"
         return "Agendada"
 
     @property
     def dynamic_status_slug(self):
-        status_display = self.dynamic_status
-        if status_display == "Concluída": return "completed"
-        if status_display == "Em Andamento": return "in_progress"
-        if status_display == "Agendada": return "scheduled"
-        if status_display == "Cancelada": return "canceled"
-        return self.status
+        status = self.dynamic_status
+        if status == "Em Andamento": return "in_progress"
+        if status == "Agendada": return "scheduled"
+        if status == "Concluída": return "completed"
+        if status == "Cancelada": return "canceled"
+        return slugify(status)
 
     @property
     def progress_percentage(self):
@@ -141,10 +137,13 @@ class Route(models.Model):
         if now >= self.end_time: return 100
         if now < self.start_time: return 0
         total_duration = (self.end_time - self.start_time).total_seconds()
-        elapsed_duration = (now - self.start_time).total_seconds()
         if total_duration <= 0: return 100
+        elapsed_duration = (now - self.start_time).total_seconds()
         percentage = (elapsed_duration / total_duration) * 100
         return min(100, int(percentage))
 
     def __str__(self):
         return f"Rota de {self.start_location} para {self.end_location} ({self.start_time.strftime('%d/%m/%Y')})"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
