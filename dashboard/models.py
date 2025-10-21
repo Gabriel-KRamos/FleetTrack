@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from django.utils import timezone
 from django.utils.text import slugify
 
@@ -44,10 +44,25 @@ class Vehicle(models.Model):
     @property
     def dynamic_status(self):
         now = timezone.now()
-        if self.status == 'disabled': return "Desativado"
-        if self.maintenance_set.filter(start_date__lte=now, end_date__gte=now, status__in=['scheduled', 'in_progress']).exists(): return "Em Manutenção"
-        if self.route_set.filter(start_time__lte=now, end_time__gte=now, status='in_progress').exists(): return "Em Rota"
-        return self.get_status_display()
+        
+        if self.status == 'disabled': 
+            return "Desativado"
+
+        active_maintenance = Q(start_date__lte=now, end_date__gte=now)
+        overdue_maintenance = Q(end_date__lt=now)
+        
+        is_in_maintenance = self.maintenance_set.filter(
+            (active_maintenance | overdue_maintenance),
+            status__in=['scheduled', 'in_progress']
+        ).exists()
+        
+        if is_in_maintenance:
+            return "Em Manutenção"
+
+        if self.route_set.filter(start_time__lte=now, end_time__gte=now, status='in_progress').exists(): 
+            return "Em Rota"
+        
+        return "Disponível"
 
     @property
     def dynamic_status_slug(self):
@@ -56,6 +71,19 @@ class Vehicle(models.Model):
         if status == "Em Rota": return 'on_route'
         if status == "Desativado": return 'disabled'
         return 'available'
+
+    @property
+    def current_route_driver(self):
+        now = timezone.now()
+        current_route = self.route_set.filter(
+            start_time__lte=now, 
+            end_time__gte=now, 
+            status='in_progress'
+        ).select_related('driver').first()
+        
+        if current_route and current_route.driver:
+            return current_route.driver
+        return None
 
 class Maintenance(models.Model):
     STATUS_CHOICES = [

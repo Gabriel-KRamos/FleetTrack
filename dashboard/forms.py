@@ -6,7 +6,7 @@ from django.db.models import Q
 class VehicleForm(forms.ModelForm):
     class Meta:
         model = Vehicle
-        fields = ['plate', 'model', 'year', 'acquisition_date', 'initial_mileage', 'status']
+        fields = ['plate', 'model', 'year', 'acquisition_date', 'initial_mileage']
         widgets = {
             'acquisition_date': forms.DateInput(attrs={'type': 'text', 'class': 'datepicker', 'placeholder': 'dd/mm/aaaa'}),
             'plate': forms.TextInput(attrs={'placeholder': 'ABC-1234'}),
@@ -35,6 +35,7 @@ class MaintenanceForm(forms.ModelForm):
         ]
         widgets = {
             'notes': forms.Textarea(attrs={'rows': 2}),
+            'current_mileage': forms.HiddenInput(),
         }
 
     def __init__(self, *args, **kwargs):

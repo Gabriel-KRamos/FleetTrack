@@ -19,6 +19,14 @@
             <a href="{% url 'dashboard' %}" class="btn btn-secondary">← Voltar ao Dashboard</a>
         </header>
 
+        {% if messages %}
+        <div class="messages" style="margin-bottom: 1.5rem;">
+            {% for message in messages %}
+            <div class="alert {% if message.tags == 'error' %}alert-error{% elif message.tags == 'success' %}alert-success{% else %}alert-{{ message.tags }}{% endif %}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         <section class="new-stat-cards">
             <div class="new-stat-card">
                 <div class="new-stat-icon icon-total">🚗</div>
@@ -96,23 +104,42 @@
                                 data-model="{{ vehicle.model }}"
                                 data-year="{{ vehicle.year }}"
                                 data-mileage="{{ vehicle.initial_mileage }}"
-                                data-status="{{ vehicle.status }}"
-                                data-status_display="{{ vehicle.get_status_display }}"
+                                data-status="{{ vehicle.dynamic_status_slug }}"
+                                data-status_display="{{ vehicle.dynamic_status }}"
                                 data-driver_name="{{ vehicle.driver.full_name|default:'Não atribuído' }}"
                                 data-acquisition_date="{{ vehicle.acquisition_date|date:'Y-m-d' }}">
                                 
                                 <td><span class="vehicle-icon">🚗</span> {{ vehicle.plate }}</td>
                                 <td>{{ vehicle.model }}</td>
                                 <td>{{ vehicle.year }}</td>
-                                <td><span class="status-tag status-{{ vehicle.status }}">{{ vehicle.get_status_display }}</span></td>
-                                <td>{{ vehicle.driver.full_name|default:'Não atribuído' }}</td>
+                                
+                                <td><span class="status-tag status-{{ vehicle.dynamic_status_slug }}">{{ vehicle.dynamic_status }}</span></td>
+                                
+                                <td>
+                                    {% with driver_on_route=vehicle.current_route_driver %}
+                                        {% if driver_on_route %}
+                                            {{ driver_on_route.full_name }}
+                                        {% else %}
+                                            Não atribuído
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
                                 <td>{{ vehicle.mileage }} km</td>
+
                                 <td class="actions">
                                     <a href="#" class="action-view action-link" title="Ver Detalhes">👁️ Ver</a>
-                                    <a href="#" class="action-edit action-link" title="Editar">✏️ Editar</a>
-                                    <a href="#" class="action-delete action-link" title="Desativar">🗑️ Desativar</a>
+                                    
+                                    {% if vehicle.status != 'disabled' %}
+                                        <a href="#" class="action-edit action-link" title="Editar">✏️ Editar</a>
+                                        <a href="#" class="action-delete action-link" title="Desativar">🗑️ Desativar</a>
+                                    {% else %}
+                                        <form method="POST" action="{% url 'vehicle-reactivate' vehicle.pk %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="action-link" style="background:none; border:none; color:var(--success-color); cursor:pointer; padding:0; font-family: inherit; font-size: inherit; font-weight: 500;">↻ Reativar</button>
+                                        </form>
+                                    {% endif %}
                                 </td>
-                            </tr>
+                                </tr>
                             {% empty %}
                             <tr><td colspan="7" style="text-align: center; padding: 2rem;">Nenhum veículo encontrado.</td></tr>
                             {% endfor %}

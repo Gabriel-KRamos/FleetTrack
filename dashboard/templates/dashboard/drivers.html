@@ -19,6 +19,13 @@
             <a href="{% url 'dashboard' %}" class="btn btn-secondary">← Voltar ao Dashboard</a>
         </header>
 
+        {% if messages %}
+        <div class="messages" style="margin-bottom: 1.5rem;">
+            {% for message in messages %}
+            <div class="alert {% if message.tags == 'error' %}alert-error{% elif message.tags == 'success' %}alert-success{% else %}alert-{{ message.tags }}{% endif %}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
         <section class="driver-stat-cards">
             <div class="driver-stat-card color-blue">
                 <div class="driver-stat-icon">👤</div>

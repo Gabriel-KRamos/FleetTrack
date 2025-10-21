@@ -69,15 +69,57 @@ class DriverListView(LoginRequiredMixin, View):
 
 class VehicleListView(LoginRequiredMixin, View):
     def get(self, request):
-        queryset = Vehicle.objects.select_related('driver').order_by('plate')
+        all_vehicles = list(Vehicle.objects.select_related('driver').order_by('plate'))
+
+        stats = {
+            'total': len(all_vehicles),
+            'available': 0,
+            'on_route': 0,
+            'maintenance': 0,
+            'disabled': 0
+        }
+
+        filtered_vehicles = []
         search_query = request.GET.get('search', '')
-        if search_query:
-            queryset = queryset.filter(Q(plate__icontains=search_query) | Q(model__icontains=search_query) | Q(driver__full_name__icontains=search_query))
         status_filter = request.GET.get('status', '')
-        if status_filter:
-            queryset = queryset.filter(status=status_filter)
-        stats = {'total': Vehicle.objects.count(), 'available': Vehicle.objects.filter(status='available').count(), 'on_route': Vehicle.objects.filter(status='on_route').count(), 'maintenance': Vehicle.objects.filter(status='maintenance').count(), 'disabled': Vehicle.objects.filter(status='disabled').count()}
-        context = {'vehicles': queryset, 'add_form': VehicleForm(), 'status_choices': Vehicle.STATUS_CHOICES, 'search_query': search_query, 'status_filter': status_filter, 'stats': stats}
+
+        for vehicle in all_vehicles:
+            dynamic_slug = vehicle.dynamic_status_slug
+
+            if dynamic_slug == 'available':
+                stats['available'] += 1
+            elif dynamic_slug == 'on_route':
+                stats['on_route'] += 1
+            elif dynamic_slug == 'maintenance':
+                stats['maintenance'] += 1
+            elif dynamic_slug == 'disabled':
+                stats['disabled'] += 1
+
+            passes_status_filter = True
+            if status_filter and dynamic_slug != status_filter:
+                passes_status_filter = False
+
+            passes_search_filter = True
+            if search_query:
+                search_query_lower = search_query.lower()
+                in_plate = search_query_lower in vehicle.plate.lower()
+                in_model = search_query_lower in vehicle.model.lower()
+                in_driver = (vehicle.driver and search_query_lower in vehicle.driver.full_name.lower())
+                
+                if not (in_plate or in_model or in_driver):
+                    passes_search_filter = False
+            
+            if passes_status_filter and passes_search_filter:
+                filtered_vehicles.append(vehicle)
+
+        context = {
+            'vehicles': filtered_vehicles,
+            'add_form': VehicleForm(), 
+            'status_choices': Vehicle.STATUS_CHOICES, 
+            'search_query': search_query, 
+            'status_filter': status_filter, 
+            'stats': stats
+        }
         return render(request, 'dashboard/vehicles.html', context)
 
 class VehicleCreateView(LoginRequiredMixin, View):
@@ -115,6 +157,14 @@ class VehicleDeactivateView(LoginRequiredMixin, View):
         vehicle.status = 'disabled'
         vehicle.save()
         messages.success(request, f'Veículo {vehicle.plate} desativado com sucesso.')
+        return redirect('vehicle-list')
+
+class VehicleReactivateView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        vehicle = get_object_or_404(Vehicle, pk=pk)
+        vehicle.status = 'available' 
+        vehicle.save()
+        messages.success(request, f'Veículo {vehicle.plate} reativado com sucesso.')
         return redirect('vehicle-list')
 
 class DriverCreateView(LoginRequiredMixin, View):
@@ -214,21 +264,42 @@ class MaintenanceListView(LoginRequiredMixin, View):
         if search_query:
             queryset = queryset.filter(Q(vehicle__plate__icontains=search_query) | Q(service_type__icontains=search_query) | Q(mechanic_shop_name__icontains=search_query))
         
-        status_filter = request.GET.get('status', '')
-        if status_filter == 'overdue':
-            queryset = queryset.filter(end_date__lt=timezone.now()).exclude(status__in=['completed', 'canceled'])
-        elif status_filter:
-            queryset = queryset.filter(status=status_filter)
+        status_filter = request.GET.get('status', '')        
+        now = timezone.now()
+
+        if status_filter == 'scheduled':
+            queryset = queryset.filter(
+                status__in=['scheduled', 'in_progress'],
+                start_date__gt=now
+            )
+        elif status_filter == 'in_progress':
+            queryset = queryset.filter(
+                status__in=['scheduled', 'in_progress'],
+                start_date__lte=now,
+                end_date__gte=now
+            )
+        elif status_filter == 'overdue':
+            queryset = queryset.filter(
+                status__in=['scheduled', 'in_progress'],
+                end_date__lt=now
+            )
+        elif status_filter == 'completed':
+            queryset = queryset.filter(status='completed')
+        
+        elif status_filter == 'canceled':
+            queryset = queryset.filter(status='canceled')
 
         stats = {
             'total': Maintenance.objects.count(),
-            'scheduled': Maintenance.objects.filter(status='scheduled', end_date__gte=timezone.now()).count(),
-            'in_progress': Maintenance.objects.filter(status='in_progress').count(),
+            'scheduled': Maintenance.objects.filter(status__in=['scheduled', 'in_progress'], start_date__gt=now).count(),
+            'in_progress': Maintenance.objects.filter(status__in=['scheduled', 'in_progress'], start_date__lte=now, end_date__gte=now).count(),
             'completed': Maintenance.objects.filter(status='completed').count(),
         }
-        
+                
         status_choices_for_filter = list(Maintenance.STATUS_CHOICES)
         status_choices_for_filter.append(('overdue', 'Atrasada'))
+
+        all_active_vehicles = Vehicle.objects.exclude(status='disabled').order_by('plate')
 
         context = {
             'maintenances': queryset,
@@ -238,6 +309,7 @@ class MaintenanceListView(LoginRequiredMixin, View):
             'search_query': search_query,
             'status_choices': status_choices_for_filter,
             'status_filter': status_filter,
+            'all_active_vehicles': all_active_vehicles,
         }
         return render(request, 'dashboard/maintenance.html', context)
 

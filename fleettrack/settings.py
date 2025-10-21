@@ -8,9 +8,9 @@ SECRET_KEY = 'django-insecure-$)d1x%9w^!4ki#%t1!jnrcq0d4c2_b=sh!a_z3x@kehgt3g7n8
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
-GOOGLE_MAPS_API_KEY = 'AIzaSyBZ5PGvb6XbY3gXlUmfgX9osDdUHCE7OPk'
+GOOGLE_MAPS_API_KEY = 'AIzaSyAb04tJCJEclzqd3eZlyCTmQgUqUHXOir0'
 
 INSTALLED_APPS = [
     'django.contrib.admin',

@@ -27,7 +27,7 @@
         </div>
         {% endif %}
 
-        <section class="new-stat-cards" style="grid-template-columns: repeat(4, 1fr);">
+        <section class="new-stat-cards cols-4">
             <div class="new-stat-card"><div class="new-stat-icon icon-total">🛠️</div><div class="new-stat-info"><span class="value">{{ stats.total }}</span><span class="title">Total de Registros</span></div></div>
             <div class="new-stat-card"><div class="new-stat-icon icon-maintenance">📅</div><div class="new-stat-info"><span class="value">{{ stats.scheduled }}</span><span class="title">Agendadas</span></div></div>
             <div class="new-stat-card"><div class="new-stat-icon icon-on-route">⚙️</div><div class="new-stat-info"><span class="value">{{ stats.in_progress }}</span><span class="title">Em Andamento</span></div></div>
@@ -96,13 +96,34 @@
             <form method="post" id="maintenance-form" class="modal-form">
                 {% csrf_token %}
                 <div class="modal-form-grid">
-                    <div class="form-group span-2">{{ add_form.vehicle.label_tag }}{{ add_form.vehicle }}</div>
+                    
+                    <div class="form-group span-2">
+                        <label for="id_vehicle">Veículo</label>
+                        <select name="vehicle" id="id_vehicle" required>
+                            <option value="">---------</option>
+                            {% for vehicle in all_active_vehicles %}
+                                <option value="{{ vehicle.pk }}" data-mileage="{{ vehicle.mileage }}">
+                                    {{ vehicle.plate }} - {{ vehicle.model }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
                     <div class="form-group span-2">{{ add_form.service_type.label_tag }}{{ add_form.service_type }}</div>
                     <div class="form-group">{{ add_form.start_date.label_tag }}{{ add_form.start_date }}</div>
                     <div class="form-group">{{ add_form.end_date.label_tag }}{{ add_form.end_date }}</div>
                     <div class="form-group span-2">{{ add_form.mechanic_shop_name.label_tag }}{{ add_form.mechanic_shop_name }}</div>
                     <div class="form-group">{{ add_form.estimated_cost.label_tag }}{{ add_form.estimated_cost }}</div>
-                    <div class="form-group">{{ add_form.current_mileage.label_tag }}{{ add_form.current_mileage }}</div>
+
+                    <div class_ ="form-group">
+                        <p style="font-size: 1.0rem; font-weight: 500; margin: 0; padding-top: 10px; color: var(--text-secondary-color);">
+                            Quilometragem Atual: 
+                            <span id="mileage-display-value" style="font-weight: 600; color: var(--text-color);">-- selecione --</span>
+                        </p>
+                    </div>
+                    
+                    {{ add_form.current_mileage }}
+
                     <div class="form-group span-2">{{ add_form.notes.label_tag }}{{ add_form.notes }}</div>
                 </div>
                 <div class="modal-footer"><button type="button" class="btn btn-secondary close-modal">Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div>

@@ -108,7 +108,7 @@
             <div class="grid-card maintenance-card">
                 <div class="card-header">
                     <h4>Próximas Manutenções</h4>
-                    <a href="#">Agendar +</a>
+                    <a href="{% url 'maintenance-list' %}">Agendar +</a>
                 </div>
                 <ul class="maintenance-list">
                     {% for maint in upcoming_maintenances %}
