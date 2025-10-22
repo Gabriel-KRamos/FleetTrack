@@ -80,7 +80,7 @@
                         <option value="">Todos os Status</option>
                         {% for value, display in status_choices %}
                             <option value="{{ value }}" {% if value == status_filter %}selected{% endif %}>{{ display }}</option>
-                        {% endfor %}
+                            {% endfor %}
                     </select>
                 </form>
 
@@ -99,36 +99,35 @@
                         </thead>
                         <tbody>
                             {% for vehicle in vehicles %}
-                            <tr data-pk="{{ vehicle.pk }}" 
+                            {% with driver_on_route=vehicle.current_route_driver %}
+                            <tr data-pk="{{ vehicle.pk }}"
                                 data-plate="{{ vehicle.plate }}"
                                 data-model="{{ vehicle.model }}"
                                 data-year="{{ vehicle.year }}"
                                 data-mileage="{{ vehicle.initial_mileage }}"
                                 data-status="{{ vehicle.dynamic_status_slug }}"
                                 data-status_display="{{ vehicle.dynamic_status }}"
-                                data-driver_name="{{ vehicle.driver.full_name|default:'Não atribuído' }}"
+                                data-driver_name="{{ driver_on_route.full_name|default:'Não atribuído' }}"
                                 data-acquisition_date="{{ vehicle.acquisition_date|date:'Y-m-d' }}">
-                                
+
                                 <td><span class="vehicle-icon">🚗</span> {{ vehicle.plate }}</td>
                                 <td>{{ vehicle.model }}</td>
                                 <td>{{ vehicle.year }}</td>
-                                
+
                                 <td><span class="status-tag status-{{ vehicle.dynamic_status_slug }}">{{ vehicle.dynamic_status }}</span></td>
-                                
+
                                 <td>
-                                    {% with driver_on_route=vehicle.current_route_driver %}
-                                        {% if driver_on_route %}
-                                            {{ driver_on_route.full_name }}
-                                        {% else %}
-                                            Não atribuído
-                                        {% endif %}
-                                    {% endwith %}
+                                    {% if driver_on_route %}
+                                        {{ driver_on_route.full_name }}
+                                    {% else %}
+                                        Não atribuído
+                                    {% endif %}
                                 </td>
                                 <td>{{ vehicle.mileage }} km</td>
 
                                 <td class="actions">
                                     <a href="#" class="action-view action-link" title="Ver Detalhes">👁️ Ver</a>
-                                    
+
                                     {% if vehicle.status != 'disabled' %}
                                         <a href="#" class="action-edit action-link" title="Editar">✏️ Editar</a>
                                         <a href="#" class="action-delete action-link" title="Desativar">🗑️ Desativar</a>
@@ -140,6 +139,7 @@
                                     {% endif %}
                                 </td>
                                 </tr>
+                            {% endwith %}
                             {% empty %}
                             <tr><td colspan="7" style="text-align: center; padding: 2rem;">Nenhum veículo encontrado.</td></tr>
                             {% endfor %}
@@ -166,7 +166,7 @@
             </form>
         </div>
     </div>
-    
+
     <div class="modal-overlay" id="deactivate-vehicle-modal">
         <div class="modal-content" style="max-width: 450px;">
             <div class="modal-header">
@@ -183,9 +183,9 @@
             </form>
         </div>
     </div>
-    
+
     <div class="modal-overlay" id="vehicle-details-modal">
-        <div class="modal-content details-modal" style="max-width: 500px;">
+        <div class="modal-content details-modal" style="max-width: 600px;">
             <div class="modal-header">
                 <div class="details-header-info">
                     <span class="details-icon" style="font-size: 1.5rem;">🚚</span>
@@ -196,29 +196,47 @@
                 </div>
                 <button class="close-modal">&times;</button>
             </div>
-            <div class="details-section">
-                <h4>Status Atual</h4>
-                <p><span id="details-status-tag" class="status-tag"></span></p>
+
+            <div class="modal-tab-nav">
+                <a href="#" class="modal-tab-link active" data-target="tab-panel-details">Detalhes</a>
+                <a href="#" class="modal-tab-link" data-target="tab-panel-maintenance">Hist. Manutenção</a>
+                <a href="#" class="modal-tab-link" data-target="tab-panel-routes">Hist. Rotas</a>
             </div>
-            <div class="details-section">
-                <h4>Informações do Veículo</h4>
-                <div class="info-grid">
-                    <div class="info-item"><small>Modelo</small><strong id="details-model"></strong></div>
-                    <div class="info-item"><small>Ano</small><strong id="details-year"></strong></div>
-                    <div class="info-item"><small>Quilometragem Inicial</small><strong id="details-mileage"></strong></div>
-                    <div class="info-item"><small>Data de Aquisição</small><strong id="details-acquisition-date"></strong></div>
+
+            <div class="modal-tab-panel" id="tab-panel-details">
+                <div class="details-section">
+                    <h4>Status Atual</h4>
+                    <p><span id="details-status-tag" class="status-tag"></span></p>
+                </div>
+                <div class="details-section">
+                    <h4>Informações do Veículo</h4>
+                    <div class="info-grid">
+                        <div class="info-item"><small>Modelo</small><strong id="details-model"></strong></div>
+                        <div class="info-item"><small>Ano</small><strong id="details-year"></strong></div>
+                        <div class="info-item"><small>Quilometragem Inicial</small><strong id="details-mileage"></strong></div>
+                        <div class="info-item"><small>Data de Aquisição</small><strong id="details-acquisition-date"></strong></div>
+                    </div>
+                </div>
+                <div class="details-section">
+                    <h4>Motorista Designado</h4>
+                    <p id="details-driver-name" style="margin: 0; font-weight: 600;"></p>
                 </div>
             </div>
-            <div class="details-section">
-                <h4>Motorista Designado</h4>
-                <p id="details-driver-name" style="margin: 0; font-weight: 600;"></p>
+
+            <div class="modal-tab-panel" id="tab-panel-maintenance" style="display: none;">
+                <p class="history-loading">Carregando histórico...</p>
             </div>
-            <div class="modal-footer">
+
+            <div class="modal-tab-panel" id="tab-panel-routes" style="display: none;">
+                <p class="history-loading">Carregando histórico...</p>
+            </div>
+
+            <div class="modal-footer" style="margin-top: 1.5rem;">
                 <button type="button" class="btn btn-secondary close-modal">Fechar</button>
             </div>
         </div>
     </div>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
     <script src="{% static 'js/vehicles.js' %}"></script>

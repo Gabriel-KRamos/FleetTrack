@@ -10,7 +10,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
-GOOGLE_MAPS_API_KEY = 'AIzaSyAb04tJCJEclzqd3eZlyCTmQgUqUHXOir0'
+GOOGLE_MAPS_API_KEY = ''
 
 INSTALLED_APPS = [
     'django.contrib.admin',

@@ -6,13 +6,14 @@ from django.db.models import Q
 class VehicleForm(forms.ModelForm):
     class Meta:
         model = Vehicle
-        fields = ['plate', 'model', 'year', 'acquisition_date', 'initial_mileage']
+        fields = ['plate', 'model', 'year', 'acquisition_date', 'initial_mileage', 'average_fuel_consumption']
         widgets = {
             'acquisition_date': forms.DateInput(attrs={'type': 'text', 'class': 'datepicker', 'placeholder': 'dd/mm/aaaa'}),
             'plate': forms.TextInput(attrs={'placeholder': 'ABC-1234'}),
             'model': forms.TextInput(attrs={'placeholder': 'ex: Ford Transit'}),
             'year': forms.NumberInput(attrs={'placeholder': 'ex: 2022'}),
             'initial_mileage': forms.NumberInput(attrs={'placeholder': 'ex: 50000'}),
+            'average_fuel_consumption': forms.NumberInput(attrs={'placeholder': 'Ex: 10.5'}),
         }
 
 class MaintenanceForm(forms.ModelForm):
@@ -53,11 +54,13 @@ class MaintenanceForm(forms.ModelForm):
                 vehicle=vehicle,
                 start_time__lt=end_date,
                 end_time__gt=start_date
-            ).exclude(pk=self.instance.pk if self.instance else None)
+            ).exclude(status__in=['completed', 'canceled'])
+            
             if conflicting_routes.exists():
                 raise forms.ValidationError(
-                    f"Conflito de agendamento: O veículo {vehicle.plate} já está em uma rota neste período."
+                    f"Conflito: O veículo {vehicle.plate} já tem uma rota agendada ou em andamento neste período."
                 )
+
         return cleaned_data
 
 class MaintenanceCompletionForm(forms.ModelForm):
@@ -98,11 +101,16 @@ class RouteForm(forms.ModelForm):
 
     class Meta:
         model = Route
+
         fields = ['start_location', 'end_location', 'vehicle', 'driver', 'start_time', 'end_time']
+        
+        widgets = {}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['vehicle'].queryset = Vehicle.objects.exclude(status='disabled')
+
+        self.fields['vehicle'].queryset = Vehicle.objects.exclude(status='disabled').filter(average_fuel_consumption__isnull=False)
+
         self.fields['driver'].queryset = Driver.objects.filter(is_active=True)
 
     def clean_location(self, location_data):
@@ -137,7 +145,8 @@ class RouteForm(forms.ModelForm):
                     vehicle=vehicle,
                     start_time__lt=end_time,
                     end_time__gt=start_time
-                ).exclude(pk=self.instance.pk if self.instance else None)
+                ).exclude(pk=self.instance.pk if self.instance else None).exclude(status__in=['completed', 'canceled'])
+                
                 if conflicting_routes.exists():
                     raise forms.ValidationError(
                         f"Conflito: O veículo {vehicle.plate} já está agendado para outra rota neste período."
@@ -147,7 +156,8 @@ class RouteForm(forms.ModelForm):
                     vehicle=vehicle,
                     start_date__lt=end_time,
                     end_date__gt=start_time
-                ).exclude(pk=self.instance.pk if self.instance else None)
+                ).exclude(status__in=['completed', 'canceled'])
+                
                 if conflicting_maintenances.exists():
                     raise forms.ValidationError(
                         f"Conflito: O veículo {vehicle.plate} está agendado para manutenção neste período."
@@ -158,9 +168,21 @@ class RouteForm(forms.ModelForm):
                     driver=driver,
                     start_time__lt=end_time,
                     end_time__gt=start_time
-                ).exclude(pk=self.instance.pk if self.instance else None)
+                ).exclude(pk=self.instance.pk if self.instance else None).exclude(status__in=['completed', 'canceled'])
+                
                 if conflicting_driver_routes.exists():
                     raise forms.ValidationError(
                         f"Conflito: O motorista {driver.full_name} já está alocado a outra rota neste período."
                     )
         return cleaned_data
+
+
+class RouteCompletionForm(forms.ModelForm):
+    actual_distance = forms.DecimalField(
+        label="Distância Real da Viagem (km)", 
+        required=True, 
+        widget=forms.NumberInput(attrs={'placeholder': 'Ex: 1150.5'})
+    )
+    class Meta:
+        model = Route
+        fields = ['actual_distance']

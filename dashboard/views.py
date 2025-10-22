@@ -5,23 +5,118 @@ from django.contrib import messages
 from datetime import date
 from django.utils import timezone
 from .models import Vehicle, Driver, Maintenance, Route
-from .forms import VehicleForm, DriverForm, MaintenanceForm, RouteForm, MaintenanceCompletionForm
+from .forms import (
+    VehicleForm, DriverForm, MaintenanceForm, RouteForm,
+    MaintenanceCompletionForm, RouteCompletionForm
+)
 from django.db.models import Q
 from django.utils.text import slugify
 from django.views.generic import RedirectView
-import googlemaps
 from django.conf import settings
+from django.http import JsonResponse
+from django.db.models import Sum, Count
+from django.db.models.functions import Coalesce
 
-def calculate_route_distance(start_location, end_location):
+import requests
+import re
+
+
+def calculate_route_details(start_location, end_location):
+    url = "https://routes.googleapis.com/directions/v2:computeRoutes"
+    
+    headers = {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': settings.GOOGLE_MAPS_API_KEY,
+        'X-Goog-FieldMask': 'routes.distanceMeters,routes.travelAdvisory.tollInfo'
+    }
+    
+    body = {
+        "origin": {"address": start_location},
+        "destination": {"address": end_location},
+        "travelMode": "DRIVE",
+        "routeModifiers": {
+            "vehicleInfo": {
+                "emissionType": "DIESEL" 
+            },
+            "avoidTolls": False
+        },
+        "extraComputations": ["TOLLS"],
+        "computeAlternativeRoutes": False,
+        "languageCode": "pt-BR",
+        "units": "METRIC"
+    }
     try:
-        gmaps = googlemaps.Client(key=settings.GOOGLE_MAPS_API_KEY)
-        directions = gmaps.directions(start_location, end_location, mode="driving")
-        if directions:
-            distance_meters = directions[0]['legs'][0]['distance']['value']
-            return round(distance_meters / 1000, 2)
+        response = requests.post(url, headers=headers, json=body)
+        response.raise_for_status()
+        data = response.json()
+
+        if not data.get('routes'):
+            error_details = data.get('error', {}).get('message', 'Nenhuma rota encontrada entre os locais.')
+            return f"Erro ao calcular rota: {error_details}"
+
+        route = data['routes'][0]
+        
+        distance_meters = route.get('distanceMeters', 0)
+        distance_km = round(distance_meters / 1000, 2)
+        
+        toll_cost = 0.0
+        toll_info = route.get('travelAdvisory', {}).get('tollInfo')
+        if toll_info and toll_info.get('estimatedPrice'):
+            for price_info in toll_info['estimatedPrice']:
+                toll_cost += float(price_info.get('units', 0)) + float(price_info.get('nanos', 0)) / 1_000_000_000
+        
+        return {
+            'distance': distance_km,
+            'toll_cost': round(toll_cost, 2)
+        }
+
+    except requests.exceptions.HTTPError as e:
+        error_body = e.response.text
+        if e.response.status_code == 403:
+            return f"Erro na API do Google (403): Verifique se a 'Routes API' está habilitada, o faturamento está ativo e a chave API é válida. Detalhes: {error_body}"
+        return f"Erro na API do Google (HTTP {e.response.status_code}): {error_body}"
+    except requests.exceptions.RequestException as e:
+        return f"Erro de conexão com a API do Google: {e}"
     except Exception as e:
-        return f"Erro na API do Google: {e}"
-    return None
+        return f"Erro inesperado ao processar rota: {e}"
+
+
+def get_diesel_price(uf):
+    url = "https://combustivelapi.com.br/api/precos"
+    headers = {
+        'Accept': 'application/json, text/plain, */*',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
+    }
+    
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+        
+        if data.get("error"):
+            return f"API de Combustível retornou um erro: {data.get('message', 'Erro desconhecido')}"
+
+        precos = data.get('precos')
+        if not precos:
+            return "Estrutura de resposta inesperada da API de Combustível (sem 'precos')."
+
+        uf_lower = uf.lower()
+        price_str = None
+        
+        if 'diesel' in precos and uf_lower in precos['diesel']:
+            price_str = precos['diesel'][uf_lower]
+        else:
+            return f"Preço 'diesel' não encontrado para a UF: {uf.upper()} na resposta da API."
+        
+        return float(price_str.replace(',', '.'))
+            
+    except requests.exceptions.HTTPError as e:
+        return f"Erro na API de Combustível (HTTP {e.response.status_code}). O servidor não aceitou a requisição."
+    except requests.exceptions.RequestException as e:
+        return f"Erro de conexão com a API de Combustível: {e}"
+    except (ValueError, TypeError, KeyError) as e:
+        return f"Erro ao processar a resposta JSON da API: {e}"
+
 
 class DashboardView(LoginRequiredMixin, View):
     def get(self, request):
@@ -70,54 +165,34 @@ class DriverListView(LoginRequiredMixin, View):
 class VehicleListView(LoginRequiredMixin, View):
     def get(self, request):
         all_vehicles = list(Vehicle.objects.select_related('driver').order_by('plate'))
-
-        stats = {
-            'total': len(all_vehicles),
-            'available': 0,
-            'on_route': 0,
-            'maintenance': 0,
-            'disabled': 0
-        }
-
+        stats = { 'total': len(all_vehicles), 'available': 0, 'on_route': 0, 'maintenance': 0, 'disabled': 0 }
         filtered_vehicles = []
         search_query = request.GET.get('search', '')
         status_filter = request.GET.get('status', '')
 
         for vehicle in all_vehicles:
             dynamic_slug = vehicle.dynamic_status_slug
-
-            if dynamic_slug == 'available':
-                stats['available'] += 1
-            elif dynamic_slug == 'on_route':
-                stats['on_route'] += 1
-            elif dynamic_slug == 'maintenance':
-                stats['maintenance'] += 1
-            elif dynamic_slug == 'disabled':
-                stats['disabled'] += 1
-
-            passes_status_filter = True
-            if status_filter and dynamic_slug != status_filter:
-                passes_status_filter = False
-
+            if dynamic_slug == 'available': stats['available'] += 1
+            elif dynamic_slug == 'on_route': stats['on_route'] += 1
+            elif dynamic_slug == 'maintenance': stats['maintenance'] += 1
+            elif dynamic_slug == 'disabled': stats['disabled'] += 1
+            passes_status_filter = not status_filter or dynamic_slug == status_filter
             passes_search_filter = True
             if search_query:
                 search_query_lower = search_query.lower()
                 in_plate = search_query_lower in vehicle.plate.lower()
                 in_model = search_query_lower in vehicle.model.lower()
                 in_driver = (vehicle.driver and search_query_lower in vehicle.driver.full_name.lower())
-                
-                if not (in_plate or in_model or in_driver):
-                    passes_search_filter = False
-            
+                passes_search_filter = in_plate or in_model or in_driver
             if passes_status_filter and passes_search_filter:
                 filtered_vehicles.append(vehicle)
 
         context = {
             'vehicles': filtered_vehicles,
-            'add_form': VehicleForm(), 
-            'status_choices': Vehicle.STATUS_CHOICES, 
-            'search_query': search_query, 
-            'status_filter': status_filter, 
+            'add_form': VehicleForm(),
+            'status_choices': Vehicle.STATUS_CHOICES,
+            'search_query': search_query,
+            'status_filter': status_filter,
             'stats': stats
         }
         return render(request, 'dashboard/vehicles.html', context)
@@ -162,7 +237,7 @@ class VehicleDeactivateView(LoginRequiredMixin, View):
 class VehicleReactivateView(LoginRequiredMixin, View):
     def post(self, request, pk):
         vehicle = get_object_or_404(Vehicle, pk=pk)
-        vehicle.status = 'available' 
+        vehicle.status = 'available'
         vehicle.save()
         messages.success(request, f'Veículo {vehicle.plate} reativado com sucesso.')
         return redirect('vehicle-list')
@@ -248,7 +323,7 @@ class MaintenanceCompleteView(LoginRequiredMixin, View):
         form = MaintenanceCompletionForm(request.POST, instance=maintenance)
         if form.is_valid():
             updated_maintenance = form.save(commit=False)
-            if updated_maintenance.estimated_cost != updated_maintenance.actual_cost:
+            if updated_maintenance.estimated_cost is not None and updated_maintenance.actual_cost is not None and updated_maintenance.estimated_cost != updated_maintenance.actual_cost:
                 messages.warning(request, f"Atenção: O custo final (R$ {updated_maintenance.actual_cost}) é diferente do estimado (R$ {updated_maintenance.estimated_cost}).")
             updated_maintenance.status = 'completed'
             updated_maintenance.save()
@@ -263,44 +338,22 @@ class MaintenanceListView(LoginRequiredMixin, View):
         search_query = request.GET.get('search', '')
         if search_query:
             queryset = queryset.filter(Q(vehicle__plate__icontains=search_query) | Q(service_type__icontains=search_query) | Q(mechanic_shop_name__icontains=search_query))
-        
-        status_filter = request.GET.get('status', '')        
+        status_filter = request.GET.get('status', '')
         now = timezone.now()
-
-        if status_filter == 'scheduled':
-            queryset = queryset.filter(
-                status__in=['scheduled', 'in_progress'],
-                start_date__gt=now
-            )
-        elif status_filter == 'in_progress':
-            queryset = queryset.filter(
-                status__in=['scheduled', 'in_progress'],
-                start_date__lte=now,
-                end_date__gte=now
-            )
-        elif status_filter == 'overdue':
-            queryset = queryset.filter(
-                status__in=['scheduled', 'in_progress'],
-                end_date__lt=now
-            )
-        elif status_filter == 'completed':
-            queryset = queryset.filter(status='completed')
-        
-        elif status_filter == 'canceled':
-            queryset = queryset.filter(status='canceled')
-
+        if status_filter == 'scheduled': queryset = queryset.filter(status__in=['scheduled', 'in_progress'], start_date__gt=now)
+        elif status_filter == 'in_progress': queryset = queryset.filter(status__in=['scheduled', 'in_progress'], start_date__lte=now, end_date__gte=now)
+        elif status_filter == 'overdue': queryset = queryset.filter(status__in=['scheduled', 'in_progress'], end_date__lt=now)
+        elif status_filter == 'completed': queryset = queryset.filter(status='completed')
+        elif status_filter == 'canceled': queryset = queryset.filter(status='canceled')
         stats = {
             'total': Maintenance.objects.count(),
             'scheduled': Maintenance.objects.filter(status__in=['scheduled', 'in_progress'], start_date__gt=now).count(),
             'in_progress': Maintenance.objects.filter(status__in=['scheduled', 'in_progress'], start_date__lte=now, end_date__gte=now).count(),
             'completed': Maintenance.objects.filter(status='completed').count(),
         }
-                
         status_choices_for_filter = list(Maintenance.STATUS_CHOICES)
         status_choices_for_filter.append(('overdue', 'Atrasada'))
-
         all_active_vehicles = Vehicle.objects.exclude(status='disabled').order_by('plate')
-
         context = {
             'maintenances': queryset,
             'add_form': MaintenanceForm(),
@@ -313,27 +366,37 @@ class MaintenanceListView(LoginRequiredMixin, View):
         }
         return render(request, 'dashboard/maintenance.html', context)
 
+
 class RouteCreateView(LoginRequiredMixin, View):
     def post(self, request):
         form = RouteForm(request.POST)
         if form.is_valid():
             route = form.save(commit=False)
-            distance_result = calculate_route_distance(route.start_location, route.end_location)
+            
+            route_details = calculate_route_details(route.start_location, route.end_location)
+            if isinstance(route_details, str):
+                return JsonResponse({'success': False, 'errors': {'__all__': [route_details]}}, status=400)
+            
+            try:
+                uf = re.split(r',\s*', route.start_location)[-1].strip().upper()
+                if not (len(uf) == 2 and uf.isalpha()):
+                     raise ValueError("Formato de UF inválido.")
+            except Exception:
+                return JsonResponse({'success': False, 'errors': {'__all__': ["Formato de Local de Partida inválido. Use 'Cidade, UF'."]}}, status=400)
 
-            if isinstance(distance_result, str):
-                messages.error(request, f"Não foi possível criar a rota. {distance_result}")
-            else:
-                route.distance = distance_result
-                route.save()
-                messages.success(request, 'Rota registrada com sucesso!')
+            price_result = get_diesel_price(uf)
+            if isinstance(price_result, str):
+                return JsonResponse({'success': False, 'errors': {'__all__': [price_result]}}, status=400)
+            
+            route.estimated_distance = route_details['distance']
+            route.estimated_toll_cost = route_details['toll_cost']
+            route.fuel_price_per_liter = price_result
+            route.save()
+            
+            messages.success(request, 'Rota registrada com sucesso!')
+            return JsonResponse({'success': True})
         else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    label = form.fields.get(field).label if field != '__all__' else ''
-                    message = f"{label}: {error}" if label else str(error)
-                    messages.error(request, message)
-        
-        return redirect('route-list')
+            return JsonResponse({'success': False, 'errors': form.errors}, status=400)
 
 class RouteListView(LoginRequiredMixin, View):
     def get(self, request):
@@ -348,12 +411,24 @@ class RouteListView(LoginRequiredMixin, View):
             elif status_slug == 'scheduled': stats['planned'] += 1
             elif status_slug == 'completed': stats['completed'] += 1
             elif status_slug == 'canceled': stats['cancelled'] += 1
+
         status_filter = request.GET.get('status', '')
+        filtered_routes = []
+
         if status_filter:
             filtered_routes = [route for route in all_routes if route.dynamic_status_slug == status_filter]
         else:
-            filtered_routes = all_routes
-        context = {'routes': filtered_routes, 'stats': stats, 'status_choices': Route.STATUS_CHOICES, 'search_query': search_query, 'status_filter': status_filter, 'add_form': RouteForm()}
+            filtered_routes = [route for route in all_routes if route.dynamic_status_slug in ['scheduled', 'in_progress', 'completed']]
+
+        context = {
+            'routes': filtered_routes,
+            'stats': stats,
+            'status_choices': Route.STATUS_CHOICES,
+            'search_query': search_query,
+            'status_filter': status_filter,
+            'add_form': RouteForm(),
+            'completion_form': RouteCompletionForm()
+        }
         return render(request, 'dashboard/routes.html', context)
 
 class RouteUpdateView(LoginRequiredMixin, View):
@@ -362,21 +437,31 @@ class RouteUpdateView(LoginRequiredMixin, View):
         form = RouteForm(request.POST, instance=route)
         if form.is_valid():
             updated_route = form.save(commit=False)
-            distance_result = calculate_route_distance(updated_route.start_location, updated_route.end_location)
+            
+            route_details = calculate_route_details(updated_route.start_location, updated_route.end_location)
+            if isinstance(route_details, str):
+                return JsonResponse({'success': False, 'errors': {'__all__': [route_details]}}, status=400)
 
-            if isinstance(distance_result, str):
-                messages.error(request, f"Não foi possível atualizar a rota. {distance_result}")
-            else:
-                updated_route.distance = distance_result
-                updated_route.save()
-                messages.success(request, 'Rota atualizada com sucesso!')
+            try:
+                uf = re.split(r',\s*', updated_route.start_location)[-1].strip().upper()
+                if not (len(uf) == 2 and uf.isalpha()):
+                     raise ValueError("Formato de UF inválido.")
+            except Exception:
+                return JsonResponse({'success': False, 'errors': {'__all__': ["Formato de Local de Partida inválido. Use 'Cidade, UF'."]}}, status=400)
+
+            price_result = get_diesel_price(uf)
+            if isinstance(price_result, str):
+                return JsonResponse({'success': False, 'errors': {'__all__': [price_result]}}, status=400)
+            
+            updated_route.estimated_distance = route_details['distance']
+            updated_route.estimated_toll_cost = route_details['toll_cost']
+            updated_route.fuel_price_per_liter = price_result
+            updated_route.save()
+            
+            messages.success(request, 'Rota atualizada com sucesso!')
+            return JsonResponse({'success': True})
         else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    label = form.fields.get(field).label if field != '__all__' else ''
-                    message = f"{label}: {error}" if label else str(error)
-                    messages.error(request, message)
-        return redirect('route-list')
+            return JsonResponse({'success': False, 'errors': form.errors}, status=400)
 
 class RouteCancelView(LoginRequiredMixin, View):
     def post(self, request, pk):
@@ -393,22 +478,83 @@ class RouteReactivateView(LoginRequiredMixin, View):
         route.save()
         messages.success(request, 'Rota reativada com sucesso.')
         return redirect('route-list')
-        
-class RouteCompleteView(LoginRequiredMixin, RedirectView):
-    permanent = False
-    query_string = True
-    pattern_name = 'route-list'
 
-    def get_redirect_url(self, *args, **kwargs):
-        route = get_object_or_404(Route, pk=kwargs['pk'])
-        
-        if route.status != 'completed' and route.distance is not None:
-            route.status = 'completed'
-            route.save()
-            messages.success(self.request, f'Rota de {route.start_location} para {route.end_location} concluída. A quilometragem do veículo foi atualizada.')
-        elif route.status == 'completed':
-            messages.warning(self.request, 'Esta rota já foi concluída.')
+
+class RouteCompleteView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        route = get_object_or_404(Route, pk=pk)
+        form = RouteCompletionForm(request.POST, instance=route)
+
+        if form.is_valid():
+            completed_route = form.save(commit=False)
+            completed_route.status = 'completed'
+
+            if not completed_route.actual_distance or completed_route.actual_distance <= 0:
+                completed_route.actual_distance = route.estimated_distance
+
+            completed_route.save()
+            messages.success(request, f'Rota de {route.start_location} para {route.end_location} concluída. A quilometragem do veículo foi atualizada.')
         else:
-            messages.error(self.request, 'Não foi possível concluir a rota, pois a distância não foi calculada.')
+            messages.error(request, 'Erro ao concluir a rota. Verifique o valor da distância.')
 
-        return super().get_redirect_url()
+        return redirect('route-list')
+
+class VehicleMaintenanceHistoryView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        vehicle = get_object_or_404(Vehicle, pk=pk)
+        maintenances = Maintenance.objects.filter(vehicle=vehicle, status='completed').order_by('-actual_end_date')
+        total_cost_agg = maintenances.aggregate(total=Sum('actual_cost'))
+        total_cost = float(total_cost_agg['total'] or 0.0)
+        history_list = []
+        for m in maintenances:
+            history_list.append({
+                'service_type': m.service_type,
+                'shop_name': m.mechanic_shop_name,
+                'end_date': m.actual_end_date.strftime('%d/%m/%Y') if m.actual_end_date else 'N/A',
+                'cost': float(m.actual_cost or 0.0),
+            })
+        return JsonResponse({ 'history': history_list, 'total_cost': total_cost })
+
+class VehicleRouteHistoryView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        vehicle = get_object_or_404(Vehicle, pk=pk)
+        routes = Route.objects.filter(
+            vehicle=vehicle,
+            status='completed'
+        ).select_related('vehicle').order_by('-end_time')
+
+        stats = routes.aggregate(
+            total_distance=Sum(Coalesce('actual_distance', 'estimated_distance')),
+            total_routes=Count('id'),
+            total_toll=Sum('estimated_toll_cost')
+        )
+
+        total_distance = float(stats['total_distance'] or 0.0)
+        total_routes = stats['total_routes'] or 0
+        total_toll_cost = float(stats['total_toll'] or 0.0)
+        total_fuel_cost = 0.0
+
+        history_list = []
+        for r in routes:
+            route_fuel_cost = float(r.estimated_fuel_cost or 0.0)
+            total_fuel_cost += route_fuel_cost
+            route_toll_cost = float(r.estimated_toll_cost or 0.0)
+
+            history_list.append({
+                'start_location': r.start_location,
+                'end_location': r.end_location,
+                'end_time': r.end_time.strftime('%d/%m/%Y %H:%M'),
+                'distance': float(r.actual_distance or r.estimated_distance or 0.0),
+                'fuel_cost': route_fuel_cost,
+                'toll_cost': route_toll_cost,
+            })
+
+        return JsonResponse({
+            'history': history_list,
+            'stats': {
+                'total_distance': total_distance,
+                'total_routes': total_routes,
+                'total_fuel_cost': total_fuel_cost,
+                'total_toll_cost': total_toll_cost,
+            }
+        })
