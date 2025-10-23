@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("routes.js: Script carregado e DOM pronto.");
 
     try {
         flatpickr(".datetimepicker", {
@@ -8,12 +7,12 @@ document.addEventListener('DOMContentLoaded', function() {
             time_24hr: true,
             locale: "pt"
         });
-        console.log("routes.js: Flatpickr inicializado.");
     } catch(e) { console.error("routes.js: Erro ao inicializar o Flatpickr.", e); }
 
     const routeModal = document.getElementById('route-modal');
     const cancelModal = document.getElementById('cancel-route-modal');
     const completeModal = document.getElementById('complete-route-modal');
+    const summaryModal = document.getElementById('route-summary-modal');
 
     const routeForm = document.getElementById('route-form');
     const cancelForm = document.getElementById('cancel-form');
@@ -74,7 +73,26 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(({ status, body }) => {
             if (status === 200 && body.success) {
                 routeModal.classList.remove('active');
-                window.location.reload(); 
+                
+                const summary = body.summary;
+
+                const formatBRL = (value) => {
+                    return (parseFloat(value) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                };
+                const formatNum = (value) => {
+                     return (parseFloat(value) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                };
+
+                document.getElementById('summary-route-title').textContent = `${summary.start_location} → ${summary.end_location}`;
+                document.getElementById('summary-distance').textContent = `${formatNum(summary.distance)} km`;
+                document.getElementById('summary-toll-cost').textContent = formatBRL(summary.toll_cost);
+                document.getElementById('summary-fuel-cost').textContent = formatBRL(summary.fuel_cost);
+                
+                if (summaryModal) {
+                    summaryModal.classList.add('active');
+                } else {
+                    window.location.reload();
+                }
             } else if (status === 400 && !body.success) {
                 displayErrorsInModal(body.errors);
             } else {
@@ -93,15 +111,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (openAddRouteBtn) {
         openAddRouteBtn.addEventListener('click', () => {
-            console.log("routes.js: Botão 'Adicionar Rota' clicado.");
             routeForm.reset();
             clearErrorsInModal();
             routeForm.action = `/routes/add/`;
             modalTitle.textContent = 'Adicionar Nova Rota';
             routeModal.classList.add('active');
         });
-    } else {
-        console.warn("routes.js: Botão 'open-add-route-modal' não encontrado.");
     }
 
     if (routeGrid) {
@@ -116,7 +131,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
             if (button.classList.contains('action-edit')) {
-                console.log(`routes.js: Botão EDITAR clicado para a rota PK=${pk}.`);
                 clearErrorsInModal();
                 
                 const startTimeInput = document.getElementById('id_start_time');
@@ -140,7 +154,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             if (button.classList.contains('action-cancel')) {
-                console.log(`routes.js: Botão CANCELAR clicado para a rota PK=${pk}.`);
                 if (button.disabled) return;
                 
                 cancelForm.action = `/routes/${pk}/cancel/`;
@@ -149,8 +162,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
             if (button.classList.contains('action-complete')) {
-                console.log(`routes.js: Botão CONCLUIR clicado para a rota PK=${pk}.`);
-                
                 const estimatedDistance = card.dataset.estimated_distance || 0;
                 document.getElementById('id_actual_distance').value = estimatedDistance.replace(',', '.');
                 
@@ -159,17 +170,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 completeModal.classList.add('active');
             }
         });
-    } else {
-        console.warn("routes.js: Grid de rotas '.route-cards-grid' não encontrado.");
     }
 
     document.querySelectorAll('.modal-overlay').forEach(modal => {
         modal.querySelectorAll('.close-modal').forEach(button => {
-            button.addEventListener('click', () => modal.classList.remove('active'));
+            button.addEventListener('click', () => {
+                modal.classList.remove('active');
+                if (modal.id === 'route-summary-modal') {
+                    window.location.reload();
+                }
+            });
         });
         modal.addEventListener('click', e => {
             if (e.target === modal) {
                 modal.classList.remove('active');
+                if (modal.id === 'route-summary-modal') {
+                    window.location.reload();
+                }
             }
         });
     });

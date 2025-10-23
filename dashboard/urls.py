@@ -22,12 +22,14 @@ from .views import (
     RouteReactivateView,
     RouteCompleteView,
     VehicleMaintenanceHistoryView,
-    VehicleRouteHistoryView
+    VehicleRouteHistoryView,
+    DriverRouteHistoryView
 )
 
 urlpatterns = [
     path('vehicles/<int:pk>/maintenance_history/', VehicleMaintenanceHistoryView.as_view(), name='vehicle-maintenance-history'),
     path('vehicles/<int:pk>/route_history/', VehicleRouteHistoryView.as_view(), name='vehicle-route-history'),
+    path('drivers/<int:pk>/route_history/', DriverRouteHistoryView.as_view(), name='driver-route-history'),
     path('', DashboardView.as_view(), name='dashboard'),
     path('vehicles/', VehicleListView.as_view(), name='vehicle-list'),
     path('vehicles/add/', VehicleCreateView.as_view(), name='vehicle-add'),

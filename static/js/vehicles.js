@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     flatpickr(".datepicker", { dateFormat: "d/m/Y", locale: "pt" });
 
     const addVehicleModal = document.getElementById('add-vehicle-modal');
@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const vehicleTableBody = document.querySelector('.vehicle-table tbody');
     if (vehicleTableBody) {
-        vehicleTableBody.addEventListener('click', function(event) {
+        vehicleTableBody.addEventListener('click', function (event) {
             const targetLink = event.target.closest('a.action-link');
             if (!targetLink) return;
 
@@ -152,12 +152,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 detailsModal.querySelector('#details-mileage').textContent = `${row.dataset.mileage} km`;
                 const acqDate = row.dataset.acquisition_date;
                 try {
-                     detailsModal.querySelector('#details-acquisition-date').textContent = new Date(acqDate + 'T00:00:00').toLocaleDateString('pt-BR');
-                } catch(e) {
-                     detailsModal.querySelector('#details-acquisition-date').textContent = 'Data inválida';
-                     console.error("Error parsing acquisition date:", e);
+                    detailsModal.querySelector('#details-acquisition-date').textContent = new Date(acqDate + 'T00:00:00').toLocaleDateString('pt-BR');
+                } catch (e) {
+                    detailsModal.querySelector('#details-acquisition-date').textContent = 'Data inválida';
+                    console.error("Error parsing acquisition date:", e);
                 }
                 detailsModal.querySelector('#details-driver-name').textContent = row.dataset.driver_name;
+                const avgConsumption = row.dataset.average_fuel_consumption;
+                const consumptionEl = detailsModal.querySelector('#details-avg-consumption');
+                if (avgConsumption && avgConsumption > 0) {
+                    consumptionEl.textContent = `${avgConsumption.replace('.', ',')} Km/L`;
+                } else {
+                    consumptionEl.textContent = 'Não informado';
+                }
                 detailsModal.classList.add('active');
             }
 
@@ -172,12 +179,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 addVehicleModal.querySelector('#id_initial_mileage').value = row.dataset.mileage || '';
                 const avgConsumptionField = addVehicleModal.querySelector('#id_average_fuel_consumption');
                 if (avgConsumptionField) {
-                     avgConsumptionField.value = row.dataset.average_fuel_consumption || '';
+                    avgConsumptionField.value = row.dataset.average_fuel_consumption || '';
                 }
                 vehicleForm.action = `/vehicles/${pk}/update/`;
                 addVehicleModal.classList.add('active');
                 if (addVehicleModal.querySelector('.datepicker')._flatpickr) {
-                     addVehicleModal.querySelector('.datepicker')._flatpickr.setDate(row.dataset.acquisition_date, false, 'Y-m-d');
+                    addVehicleModal.querySelector('.datepicker')._flatpickr.setDate(row.dataset.acquisition_date, false, 'Y-m-d');
                 }
             }
 
@@ -191,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     if (detailsModal) {
-        detailsModal.addEventListener('click', function(e) {
+        detailsModal.addEventListener('click', function (e) {
             const tabLink = e.target.closest('.modal-tab-link');
             if (!tabLink) return;
 

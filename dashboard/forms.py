@@ -80,12 +80,57 @@ class MaintenanceCompletionForm(forms.ModelForm):
 class DriverForm(forms.ModelForm):
     class Meta:
         model = Driver
-        fields = ['full_name', 'email', 'phone_number', 'license_number', 'admission_date']
+        fields = ['full_name', 'email', 'license_number', 'admission_date']
         widgets = {
             'admission_date': forms.DateInput(
                 attrs={'type': 'text', 'class': 'datepicker', 'placeholder': 'dd/mm/aaaa'}
             ),
+            'full_name': forms.TextInput(attrs={'placeholder': 'Nome completo do motorista'}),
+            'email': forms.EmailInput(attrs={'placeholder': 'email@exemplo.com'}),
+            'license_number': forms.TextInput(attrs={'placeholder': '11 dígitos numéricos da CNH'}),
         }
+
+    def clean_license_number(self):
+        license_number = self.cleaned_data.get('license_number')
+        if not license_number:
+            raise forms.ValidationError("Este campo é obrigatório.")
+
+        cleaned_license = re.sub(r'[^0-9]', '', license_number)
+
+        if len(cleaned_license) != 11:
+            raise forms.ValidationError("A CNH deve conter exatamente 11 dígitos numéricos.")
+
+        query = Driver.objects.filter(
+            license_number=cleaned_license,
+            is_active=True
+        )
+        
+        if self.instance and self.instance.pk:
+            query = query.exclude(pk=self.instance.pk)
+        
+        if query.exists():
+            raise forms.ValidationError("Esta CNH já está registada num motorista ativo.")
+
+        return cleaned_license
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if not email:
+            raise forms.ValidationError("Este campo é obrigatório.")
+
+        query = Driver.objects.filter(
+            email=email,
+            is_active=True
+        )
+        
+        if self.instance and self.instance.pk:
+            query = query.exclude(pk=self.instance.pk)
+
+        if query.exists():
+            raise forms.ValidationError("Este endereço de email já está em uso por um motorista ativo.")
+
+        return email
+
 
 class RouteForm(forms.ModelForm):
     start_time = forms.DateTimeField(

@@ -20,9 +20,9 @@
         </header>
 
         {% if messages %}
-        <div class="messages">
+        <div class="messages" style="margin-bottom: 1.5rem;">
             {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            <div class="alert {% if message.tags == 'error' %}alert-error{% elif message.tags == 'success' %}alert-success{% else %}alert-{{ message.tags }}{% endif %}">{{ message }}</div>
             {% endfor %}
         </div>
         {% endif %}
@@ -66,7 +66,7 @@
                                 data-status="{{ m.status }}">
                                 <td>{{ m.vehicle.plate }}</td>
                                 <td>{{ m.service_type }}</td>
-                                <td>{{ m.start_date|date:"d M, Y" }}</td>
+                                <td>{{ m.start_date|date:"d/m/Y" }}</td> 
                                 <td><span class="status-tag status-{{ m.dynamic_status_slug }}">{{ m.dynamic_status }}</span></td>
                                 <td>{{ m.mechanic_shop_name }}</td>
                                 <td>R$ {{ m.estimated_cost|default:'--' }}</td>
@@ -147,7 +147,7 @@
     <div class="modal-overlay" id="cancel-maintenance-modal">
         <div class="modal-content" style="max-width: 450px;">
             <div class="modal-header"><h2>Cancelar Manutenção</h2><button class="close-modal">&times;</button></div>
-            <form method="post" id="cancel-maintenance-form">
+            <form method="post" id="cancel-maintenance-form"> 
                 {% csrf_token %}
                 <p>Tem certeza que deseja cancelar este registro de manutenção? Esta ação não pode ser desfeita.</p>
                 <div class="modal-footer"><button type="button" class="btn btn-secondary close-modal">Não</button><button type="submit" class="btn btn-danger">Sim, Cancelar</button></div>

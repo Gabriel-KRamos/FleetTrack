@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const maintenanceForm = document.getElementById('maintenance-form');
     const completeForm = document.getElementById('complete-maintenance-form');
-    const cancelForm = document.getElementById('cancel-form');
+    const cancelForm = document.getElementById('cancel-maintenance-form');
 
     const modalTitle = document.getElementById('maintenance-modal-title');
     const openAddBtn = document.getElementById('open-add-maintenance-modal');
@@ -85,8 +85,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (target.classList.contains('action-cancel')) {
-            cancelForm.action = `/maintenance/${pk}/cancel/`;
-            cancelModal.classList.add('active');
+            if (cancelForm) {
+                cancelForm.action = `/maintenance/${pk}/cancel/`;
+                cancelModal.classList.add('active');
+            } else {
+                console.error("Elemento com ID 'cancel-maintenance-form' não encontrado.");
+            }
         }
 
         if (target.classList.contains('action-complete')) {
@@ -95,8 +99,12 @@ document.addEventListener('DOMContentLoaded', function() {
             if (endDateInput._flatpickr) {
                 endDateInput._flatpickr.setDate(row.dataset.end_date, true, "d/m/Y H:i");
             }
-            completeForm.action = `/maintenance/${pk}/complete/`;
-            completeModal.classList.add('active');
+            if (completeForm) {
+                completeForm.action = `/maintenance/${pk}/complete/`;
+                completeModal.classList.add('active');
+            } else {
+                console.error("Elemento com ID 'complete-maintenance-form' não encontrado.");
+            }
         }
     });
 

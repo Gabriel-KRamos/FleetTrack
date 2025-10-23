@@ -108,8 +108,9 @@
                                 data-status="{{ vehicle.dynamic_status_slug }}"
                                 data-status_display="{{ vehicle.dynamic_status }}"
                                 data-driver_name="{{ driver_on_route.full_name|default:'Não atribuído' }}"
-                                data-acquisition_date="{{ vehicle.acquisition_date|date:'Y-m-d' }}">
-
+                                data-acquisition_date="{{ vehicle.acquisition_date|date:'Y-m-d' }}"
+                                data-average_fuel_consumption="{{ vehicle.average_fuel_consumption|default:'' }}">
+                                
                                 <td><span class="vehicle-icon">🚗</span> {{ vehicle.plate }}</td>
                                 <td>{{ vehicle.model }}</td>
                                 <td>{{ vehicle.year }}</td>
@@ -215,6 +216,10 @@
                         <div class="info-item"><small>Ano</small><strong id="details-year"></strong></div>
                         <div class="info-item"><small>Quilometragem Inicial</small><strong id="details-mileage"></strong></div>
                         <div class="info-item"><small>Data de Aquisição</small><strong id="details-acquisition-date"></strong></div>
+                        <div class="info-item">
+                            <small>Consumo Médio (Km/L)</small>
+                            <strong id="details-avg-consumption"></strong>
+                        </div>
                     </div>
                 </div>
                 <div class="details-section">

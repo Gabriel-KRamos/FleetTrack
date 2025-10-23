@@ -120,24 +120,39 @@ def get_diesel_price(uf):
 
 class DashboardView(LoginRequiredMixin, View):
     def get(self, request):
-        now = timezone.now()
-        vehicles_in_use_pks = Route.objects.filter(start_time__lte=now, end_time__gte=now).exclude(status='canceled').values_list('vehicle_id', flat=True)
-        vehicles_in_maintenance_pks = Maintenance.objects.filter(start_date__lte=now, end_date__gte=now).values_list('vehicle_id', flat=True)
+        
+        all_vehicles = list(Vehicle.objects.all())
         vehicle_overview = {
-            'total': Vehicle.objects.count(),
-            'in_use': len(set(vehicles_in_use_pks)),
-            'maintenance': len(set(vehicles_in_maintenance_pks)),
-            'unavailable': Vehicle.objects.filter(status='disabled').count()
+            'total': len(all_vehicles),
+            'available': 0,
+            'in_use': 0,
+            'maintenance': 0,
+            'unavailable': 0
         }
-        vehicle_overview['available'] = vehicle_overview['total'] - vehicle_overview['in_use'] - vehicle_overview['maintenance'] - vehicle_overview['unavailable']
+
+        for vehicle in all_vehicles:
+            dynamic_slug = vehicle.dynamic_status_slug
+            if dynamic_slug == 'available':
+                vehicle_overview['available'] += 1
+            elif dynamic_slug == 'on_route':
+                vehicle_overview['in_use'] += 1
+            elif dynamic_slug == 'maintenance':
+                vehicle_overview['maintenance'] += 1
+            elif dynamic_slug == 'disabled':
+                vehicle_overview['unavailable'] += 1
+        
         driver_overview = {
             'total': Driver.objects.count(),
             'active': Driver.objects.filter(is_active=True).count(),
             'inactive': Driver.objects.filter(is_active=False).count(),
         }
+        
+        now = timezone.now() 
+        
         recent_maintenances = Maintenance.objects.select_related('vehicle').order_by('-end_date')[:2]
         recent_routes = Route.objects.select_related('vehicle').filter(status='completed').order_by('-end_time')[:2]
         upcoming_maintenances = Maintenance.objects.select_related('vehicle').filter(status='scheduled', start_date__gte=now).order_by('start_date')[:3]
+        
         context = {
             'vehicle_overview': vehicle_overview,
             'driver_overview': driver_overview,
@@ -153,13 +168,27 @@ class DriverListView(LoginRequiredMixin, View):
         search_query = request.GET.get('search', '')
         if search_query:
             queryset = queryset.filter(Q(full_name__icontains=search_query) | Q(email__icontains=search_query) | Q(license_number__icontains=search_query))
+        
         status_filter = request.GET.get('status', '')
         if status_filter == 'active':
             queryset = queryset.filter(is_active=True)
         elif status_filter == 'inactive':
             queryset = queryset.filter(is_active=False)
-        stats = {'total': Driver.objects.count(), 'active': Driver.objects.filter(is_active=True).count(), 'inactive': Driver.objects.filter(is_active=False).count(), 'suspended': Driver.objects.filter(is_active=False).count()}
-        context = {'drivers': queryset, 'add_form': DriverForm(), 'stats': stats, 'search_query': search_query, 'status_filter': status_filter}
+
+        stats = {
+            'total': Driver.objects.count(), 
+            'active': Driver.objects.filter(is_active=True).count(), 
+            'inactive': Driver.objects.filter(is_active=False).count()
+        }
+        
+        context = {
+            'drivers': queryset, 
+            'add_form': DriverForm(), 
+            'stats': stats, 
+            'search_query': search_query, 
+            'status_filter': status_filter
+        }
+
         return render(request, 'dashboard/drivers.html', context)
 
 class VehicleListView(LoginRequiredMixin, View):
@@ -176,7 +205,9 @@ class VehicleListView(LoginRequiredMixin, View):
             elif dynamic_slug == 'on_route': stats['on_route'] += 1
             elif dynamic_slug == 'maintenance': stats['maintenance'] += 1
             elif dynamic_slug == 'disabled': stats['disabled'] += 1
+            
             passes_status_filter = not status_filter or dynamic_slug == status_filter
+            
             passes_search_filter = True
             if search_query:
                 search_query_lower = search_query.lower()
@@ -184,6 +215,7 @@ class VehicleListView(LoginRequiredMixin, View):
                 in_model = search_query_lower in vehicle.model.lower()
                 in_driver = (vehicle.driver and search_query_lower in vehicle.driver.full_name.lower())
                 passes_search_filter = in_plate or in_model or in_driver
+            
             if passes_status_filter and passes_search_filter:
                 filtered_vehicles.append(vehicle)
 
@@ -393,8 +425,20 @@ class RouteCreateView(LoginRequiredMixin, View):
             route.fuel_price_per_liter = price_result
             route.save()
             
+            route.refresh_from_db() 
+
             messages.success(request, 'Rota registrada com sucesso!')
-            return JsonResponse({'success': True})
+            
+            return JsonResponse({
+                'success': True,
+                'summary': {
+                    'start_location': route.start_location,
+                    'end_location': route.end_location,
+                    'distance': route.estimated_distance,
+                    'toll_cost': route.estimated_toll_cost,
+                    'fuel_cost': route.estimated_fuel_cost or 0.0 
+                }
+            })
         else:
             return JsonResponse({'success': False, 'errors': form.errors}, status=400)
 
@@ -413,12 +457,11 @@ class RouteListView(LoginRequiredMixin, View):
             elif status_slug == 'canceled': stats['cancelled'] += 1
 
         status_filter = request.GET.get('status', '')
-        filtered_routes = []
-
+        
         if status_filter:
             filtered_routes = [route for route in all_routes if route.dynamic_status_slug == status_filter]
         else:
-            filtered_routes = [route for route in all_routes if route.dynamic_status_slug in ['scheduled', 'in_progress', 'completed']]
+            filtered_routes = all_routes
 
         context = {
             'routes': filtered_routes,
@@ -458,8 +501,20 @@ class RouteUpdateView(LoginRequiredMixin, View):
             updated_route.fuel_price_per_liter = price_result
             updated_route.save()
             
+            updated_route.refresh_from_db() 
+
             messages.success(request, 'Rota atualizada com sucesso!')
-            return JsonResponse({'success': True})
+            
+            return JsonResponse({
+                'success': True,
+                'summary': {
+                    'start_location': updated_route.start_location,
+                    'end_location': updated_route.end_location,
+                    'distance': updated_route.estimated_distance,
+                    'toll_cost': updated_route.estimated_toll_cost,
+                    'fuel_cost': updated_route.estimated_fuel_cost or 0.0
+                }
+            })
         else:
             return JsonResponse({'success': False, 'errors': form.errors}, status=400)
 
@@ -547,6 +602,51 @@ class VehicleRouteHistoryView(LoginRequiredMixin, View):
                 'distance': float(r.actual_distance or r.estimated_distance or 0.0),
                 'fuel_cost': route_fuel_cost,
                 'toll_cost': route_toll_cost,
+            })
+
+        return JsonResponse({
+            'history': history_list,
+            'stats': {
+                'total_distance': total_distance,
+                'total_routes': total_routes,
+                'total_fuel_cost': total_fuel_cost,
+                'total_toll_cost': total_toll_cost,
+            }
+        })
+
+class DriverRouteHistoryView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        driver = get_object_or_404(Driver, pk=pk)
+        routes = Route.objects.filter(
+            driver=driver,
+            status='completed'
+        ).select_related('vehicle').order_by('-end_time')
+
+        stats = routes.aggregate(
+            total_distance=Sum(Coalesce('actual_distance', 'estimated_distance')),
+            total_routes=Count('id'),
+            total_toll=Sum('estimated_toll_cost')
+        )
+
+        total_distance = float(stats['total_distance'] or 0.0)
+        total_routes = stats['total_routes'] or 0
+        total_toll_cost = float(stats['total_toll'] or 0.0)
+        total_fuel_cost = 0.0
+
+        history_list = []
+        for r in routes:
+            route_fuel_cost = float(r.estimated_fuel_cost or 0.0)
+            total_fuel_cost += route_fuel_cost
+            route_toll_cost = float(r.estimated_toll_cost or 0.0)
+
+            history_list.append({
+                'start_location': r.start_location,
+                'end_location': r.end_location,
+                'end_time': r.end_time.strftime('%d/%m/%Y %H:%M'),
+                'distance': float(r.actual_distance or r.estimated_distance or 0.0),
+                'fuel_cost': route_fuel_cost,
+                'toll_cost': route_toll_cost,
+                'vehicle_plate': r.vehicle.plate if r.vehicle else 'N/A',
             })
 
         return JsonResponse({
