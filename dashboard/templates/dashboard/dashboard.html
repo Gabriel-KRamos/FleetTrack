@@ -84,23 +84,22 @@
                 </ul>
             </div>
 
-            <div class="grid-card activity-card">
+            <div class="grid-card alert-card">
                 <div class="card-header">
-                    <h4>Atividade Recente</h4>
-                    <a href="#">Ver Tudo →</a>
+                    <h4>Alertas de Manutenção</h4>
+                    <a href="{% url 'alert-config' %}">Configurar →</a>
                 </div>
-                <ul class="activity-list">
-                    {% for route in recent_routes %}
+                <ul class="alert-list">
+                    {% for alert in vehicle_alerts %}
                     <li>
-                        <div class="activity-icon color-blue">🚗</div>
-                        <p>Rota do veículo <strong>{{ route.vehicle.plate }}</strong> finalizada.</p>
+                        <div class="alert-icon">⚠️</div>
+                        <div class="alert-info">
+                            <p><strong>{{ alert.vehicle.plate }}</strong> - {{ alert.service_type }}</p>
+                            <small style="color: var(--danger-color); font-weight: 500;">{{ alert.message }}</small>
+                        </div>
                     </li>
-                    {% endfor %}
-                    {% for maint in recent_maintenances %}
-                    <li>
-                        <div class="activity-icon color-green">🛠️</div>
-                         <p>Manutenção <strong>{{ maint.service_type }}</strong> concluída para <strong>{{ maint.vehicle.plate }}</strong>.</p>
-                    </li>
+                    {% empty %}
+                    <p style="text-align: center; color: var(--text-secondary-color);">Nenhum alerta de manutenção ativo.</p>
                     {% endfor %}
                 </ul>
             </div>

@@ -3,6 +3,7 @@ from django.db.models import Sum, Q
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.utils.text import slugify
+from datetime import date, datetime
 
 class Driver(models.Model):
     full_name = models.CharField(max_length=100, verbose_name="Nome Completo")
@@ -40,7 +41,7 @@ class Vehicle(models.Model):
         completed_routes_mileage = self.route_set.filter(status='completed').aggregate(
             total=Sum(Coalesce('actual_distance', 'estimated_distance'), output_field=models.DecimalField())
         )['total'] or 0
-        
+
         return self.initial_mileage + int(completed_routes_mileage)
 
     def __str__(self):
@@ -84,6 +85,14 @@ class Vehicle(models.Model):
         return None
 
 class Maintenance(models.Model):
+    SERVICE_CHOICES_ALERT_CONFIG = [
+        ('Revisão Geral', 'Revisão Geral'),
+        ('Troca de Óleo e Filtros', 'Troca de Óleo e Filtros'),
+        ('Troca de Pneus', 'Troca de Pneus'),
+        ('Revisão dos Freios', 'Revisão dos Freios'),
+        ('Alinhamento e Balanceamento', 'Alinhamento e Balanceamento'),
+        ('Troca da Correia Dentada', 'Troca da Correia Dentada'),
+    ]
     STATUS_CHOICES = [
         ('scheduled', 'Agendada'), ('in_progress', 'Em Andamento'),
         ('completed', 'Concluída'), ('canceled', 'Cancelada'),
@@ -175,3 +184,34 @@ class Route(models.Model):
         if self.status == 'completed' and not self.actual_distance:
             self.status = 'scheduled' if timezone.now() < self.start_time else 'in_progress'
         super().save(*args, **kwargs)
+
+
+class AlertConfiguration(models.Model):
+    PRIORITY_CHOICES = [
+        ('low', 'Baixa'),
+        ('medium', 'Média'),
+        ('high', 'Alta'),
+    ]
+
+    service_type = models.CharField(
+        max_length=100,
+        unique=True,
+        choices=Maintenance.SERVICE_CHOICES_ALERT_CONFIG,
+        verbose_name="Tipo de Serviço"
+    )
+    km_threshold = models.PositiveIntegerField(null=True, blank=True, verbose_name="Limite KM")
+    days_threshold = models.PositiveIntegerField(null=True, blank=True, verbose_name="Limite Dias")
+    is_active = models.BooleanField(default=True, verbose_name="Alerta Ativo?")
+    priority = models.CharField(
+        max_length=10,
+        choices=PRIORITY_CHOICES,
+        default='medium',
+        verbose_name="Prioridade"
+    )
+
+    def __str__(self):
+        return self.get_service_type_display()
+
+    class Meta:
+        verbose_name = "Configuração de Alerta"
+        verbose_name_plural = "Configurações de Alertas"

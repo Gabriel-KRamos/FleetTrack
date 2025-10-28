@@ -23,7 +23,8 @@ from .views import (
     RouteCompleteView,
     VehicleMaintenanceHistoryView,
     VehicleRouteHistoryView,
-    DriverRouteHistoryView
+    DriverRouteHistoryView,
+    AlertConfigView
 )
 
 urlpatterns = [
@@ -51,4 +52,5 @@ urlpatterns = [
     path('maintenance/<int:pk>/cancel/', MaintenanceCancelView.as_view(), name='maintenance-cancel'),
     path('maintenance/<int:pk>/complete/', MaintenanceCompleteView.as_view(), name='maintenance-complete'),
     path('routes/<int:pk>/complete/', RouteCompleteView.as_view(), name='route-complete'),
+    path('alerts/config/', AlertConfigView.as_view(), name='alert-config'),
 ]

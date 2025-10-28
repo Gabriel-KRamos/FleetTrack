@@ -21,6 +21,27 @@ document.addEventListener('DOMContentLoaded', function() {
     const mileageDisplay = document.getElementById('mileage-display-value'); 
     const mileageInput = document.getElementById('id_current_mileage'); 
 
+    const serviceChoiceSelect = document.getElementById('id_service_choice');
+    const serviceTypeOtherWrapper = document.getElementById('service_type_other_wrapper');
+    const serviceTypeOtherInput = document.getElementById('id_service_type_other');
+
+    function toggleServiceTypeOther(show) {
+        if (show) {
+            serviceTypeOtherWrapper.style.display = 'block';
+            serviceTypeOtherInput.required = true;
+        } else {
+            serviceTypeOtherWrapper.style.display = 'none';
+            serviceTypeOtherInput.required = false;
+            serviceTypeOtherInput.value = '';
+        }
+    }
+
+    if (serviceChoiceSelect) {
+        serviceChoiceSelect.addEventListener('change', function() {
+            toggleServiceTypeOther(this.value === 'Outro');
+        });
+    }
+
     if (vehicleSelect) {
         vehicleSelect.addEventListener('change', function() {
             const selectedOption = this.options[this.selectedIndex];
@@ -46,6 +67,11 @@ document.addEventListener('DOMContentLoaded', function() {
             mileageDisplay.textContent = '-- selecione --'; 
             mileageInput.value = ''; 
             
+            toggleServiceTypeOther(false);
+            if (serviceChoiceSelect) {
+                serviceChoiceSelect.value = '';
+            }
+            
             maintenanceModal.classList.add('active');
         });
     }
@@ -61,10 +87,22 @@ document.addEventListener('DOMContentLoaded', function() {
         if (target.classList.contains('action-edit')) {
             modalTitle.textContent = 'Editar Manutenção';
             
-            document.querySelector('#maintenance-modal #id_service_type').value = row.dataset.service_type;
+            if (serviceChoiceSelect) {
+                const serviceTypeData = row.dataset.service_type;
+                const predefinedChoices = Array.from(serviceChoiceSelect.options).map(opt => opt.value);
+    
+                if (predefinedChoices.includes(serviceTypeData)) {
+                    serviceChoiceSelect.value = serviceTypeData;
+                    toggleServiceTypeOther(false);
+                } else {
+                    serviceChoiceSelect.value = 'Outro';
+                    serviceTypeOtherInput.value = serviceTypeData;
+                    toggleServiceTypeOther(true);
+                }
+            }
+            
             document.querySelector('#maintenance-modal #id_mechanic_shop_name').value = row.dataset.mechanic_shop_name;
             document.querySelector('#maintenance-modal #id_estimated_cost').value = row.dataset.estimated_cost;
-            document.querySelector('#maintenance-modal #id_notes').value = row.dataset.notes;
             
             const currentMileage = row.dataset.current_mileage;
             vehicleSelect.value = row.dataset.vehicle_id; 

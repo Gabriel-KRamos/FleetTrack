@@ -1,7 +1,8 @@
 import re
 from django import forms
-from .models import Vehicle, Driver, Maintenance, Route
+from .models import Vehicle, Driver, Maintenance, Route, AlertConfiguration
 from django.db.models import Q
+from django.forms import modelformset_factory
 
 class VehicleForm(forms.ModelForm):
     class Meta:
@@ -17,6 +18,30 @@ class VehicleForm(forms.ModelForm):
         }
 
 class MaintenanceForm(forms.ModelForm):
+    SERVICE_CHOICES = [
+        ('', 'Selecione um tipo de serviço...'),
+        ('Revisão Geral', 'Revisão Geral'),
+        ('Troca de Óleo e Filtros', 'Troca de Óleo e Filtros'),
+        ('Alinhamento e Balanceamento', 'Alinhamento e Balanceamento'),
+        ('Troca de Pneus', 'Troca de Pneus'),
+        ('Revisão dos Freios', 'Revisão dos Freios'),
+        ('Troca da Correia Dentada', 'Troca da Correia Dentada'),
+        ('Outro', 'Outro (Especificar)'),
+    ]
+
+    service_choice = forms.ChoiceField(
+        choices=SERVICE_CHOICES,
+        label="Tipo de Serviço",
+        required=False,
+        widget=forms.Select(attrs={'id': 'id_service_choice'})
+    )
+
+    service_type_other = forms.CharField(
+        label="Especifique o Serviço",
+        required=False,
+        widget=forms.TextInput(attrs={'placeholder': 'Especifique o tipo de serviço', 'id': 'id_service_type_other'})
+    )
+
     start_date = forms.DateTimeField(
         label="Início",
         input_formats=['%d/%m/%Y %H:%M'],
@@ -31,11 +56,17 @@ class MaintenanceForm(forms.ModelForm):
     class Meta:
         model = Maintenance
         fields = [
-            'vehicle', 'service_type', 'start_date', 'end_date',
-            'mechanic_shop_name', 'estimated_cost', 'current_mileage', 'notes'
+            'vehicle',
+            'service_choice',
+            'service_type_other',
+            'start_date',
+            'end_date',
+            'mechanic_shop_name',
+            'estimated_cost',
+            'current_mileage'
         ]
+        exclude = ['service_type', 'status', 'actual_cost', 'actual_end_date', 'notes']
         widgets = {
-            'notes': forms.Textarea(attrs={'rows': 2}),
             'current_mileage': forms.HiddenInput(),
         }
 
@@ -43,11 +74,36 @@ class MaintenanceForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['vehicle'].queryset = Vehicle.objects.exclude(status='disabled')
 
+        if self.instance and self.instance.pk:
+            service_type = self.instance.service_type
+            choice_values = [choice[0] for choice in self.SERVICE_CHOICES]
+            if service_type in choice_values:
+                self.initial['service_choice'] = service_type
+            else:
+                self.initial['service_choice'] = 'Outro'
+                self.initial['service_type_other'] = service_type
+
     def clean(self):
         cleaned_data = super().clean()
+        service_choice = cleaned_data.get("service_choice")
+        service_type_other = cleaned_data.get("service_type_other")
+        vehicle = cleaned_data.get("vehicle")
+
+        final_service_type = ""
+        if service_choice == 'Outro':
+            if not service_type_other:
+                self.add_error('service_type_other', "Você deve especificar o tipo de serviço ao selecionar 'Outro'.")
+            else:
+                final_service_type = service_type_other
+        elif service_choice:
+            final_service_type = service_choice
+        else:
+            self.add_error('service_choice', "Este campo é obrigatório.")
+
+        cleaned_data['service_type'] = final_service_type
+
         start_date = cleaned_data.get("start_date")
         end_date = cleaned_data.get("end_date")
-        vehicle = cleaned_data.get("vehicle")
 
         if start_date and end_date and vehicle:
             conflicting_routes = Route.objects.filter(
@@ -55,13 +111,23 @@ class MaintenanceForm(forms.ModelForm):
                 start_time__lt=end_date,
                 end_time__gt=start_date
             ).exclude(status__in=['completed', 'canceled'])
-            
+
+            if self.instance and self.instance.pk:
+                 conflicting_routes = conflicting_routes.exclude(pk=self.instance.pk)
+
             if conflicting_routes.exists():
                 raise forms.ValidationError(
                     f"Conflito: O veículo {vehicle.plate} já tem uma rota agendada ou em andamento neste período."
                 )
 
         return cleaned_data
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.service_type = self.cleaned_data['service_type']
+        if commit:
+            instance.save()
+        return instance
 
 class MaintenanceCompletionForm(forms.ModelForm):
     actual_end_date = forms.DateTimeField(
@@ -94,41 +160,25 @@ class DriverForm(forms.ModelForm):
         license_number = self.cleaned_data.get('license_number')
         if not license_number:
             raise forms.ValidationError("Este campo é obrigatório.")
-
         cleaned_license = re.sub(r'[^0-9]', '', license_number)
-
         if len(cleaned_license) != 11:
             raise forms.ValidationError("A CNH deve conter exatamente 11 dígitos numéricos.")
-
-        query = Driver.objects.filter(
-            license_number=cleaned_license,
-            is_active=True
-        )
-        
+        query = Driver.objects.filter(license_number=cleaned_license, is_active=True)
         if self.instance and self.instance.pk:
             query = query.exclude(pk=self.instance.pk)
-        
         if query.exists():
             raise forms.ValidationError("Esta CNH já está registada num motorista ativo.")
-
         return cleaned_license
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
         if not email:
             raise forms.ValidationError("Este campo é obrigatório.")
-
-        query = Driver.objects.filter(
-            email=email,
-            is_active=True
-        )
-        
+        query = Driver.objects.filter(email=email, is_active=True)
         if self.instance and self.instance.pk:
             query = query.exclude(pk=self.instance.pk)
-
         if query.exists():
             raise forms.ValidationError("Este endereço de email já está em uso por um motorista ativo.")
-
         return email
 
 
@@ -146,24 +196,18 @@ class RouteForm(forms.ModelForm):
 
     class Meta:
         model = Route
-
         fields = ['start_location', 'end_location', 'vehicle', 'driver', 'start_time', 'end_time']
-        
         widgets = {}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
         self.fields['vehicle'].queryset = Vehicle.objects.exclude(status='disabled').filter(average_fuel_consumption__isnull=False)
-
         self.fields['driver'].queryset = Driver.objects.filter(is_active=True)
 
     def clean_location(self, location_data):
         pattern = re.compile(r'^.+,\s*[a-zA-Z]{2}$')
         if location_data and not pattern.match(location_data.strip()):
-            raise forms.ValidationError(
-                "Formato inválido. Use 'Cidade, UF'. Ex: Joinville, SC"
-            )
+            raise forms.ValidationError("Formato inválido. Use 'Cidade, UF'. Ex: Joinville, SC")
         return location_data
 
     def clean_start_location(self):
@@ -184,50 +228,57 @@ class RouteForm(forms.ModelForm):
         if start_time and end_time:
             if start_time >= end_time:
                 raise forms.ValidationError("A data de fim deve ser posterior à data de início.")
-
             if vehicle:
                 conflicting_routes = Route.objects.filter(
-                    vehicle=vehicle,
-                    start_time__lt=end_time,
-                    end_time__gt=start_time
+                    vehicle=vehicle, start_time__lt=end_time, end_time__gt=start_time
                 ).exclude(pk=self.instance.pk if self.instance else None).exclude(status__in=['completed', 'canceled'])
-                
                 if conflicting_routes.exists():
-                    raise forms.ValidationError(
-                        f"Conflito: O veículo {vehicle.plate} já está agendado para outra rota neste período."
-                    )
-                
+                    raise forms.ValidationError(f"Conflito: O veículo {vehicle.plate} já está agendado para outra rota neste período.")
                 conflicting_maintenances = Maintenance.objects.filter(
-                    vehicle=vehicle,
-                    start_date__lt=end_time,
-                    end_date__gt=start_time
+                    vehicle=vehicle, start_date__lt=end_time, end_date__gt=start_time
                 ).exclude(status__in=['completed', 'canceled'])
-                
                 if conflicting_maintenances.exists():
-                    raise forms.ValidationError(
-                        f"Conflito: O veículo {vehicle.plate} está agendado para manutenção neste período."
-                    )
-
+                    raise forms.ValidationError(f"Conflito: O veículo {vehicle.plate} está agendado para manutenção neste período.")
             if driver:
                 conflicting_driver_routes = Route.objects.filter(
-                    driver=driver,
-                    start_time__lt=end_time,
-                    end_time__gt=start_time
+                    driver=driver, start_time__lt=end_time, end_time__gt=start_time
                 ).exclude(pk=self.instance.pk if self.instance else None).exclude(status__in=['completed', 'canceled'])
-                
                 if conflicting_driver_routes.exists():
-                    raise forms.ValidationError(
-                        f"Conflito: O motorista {driver.full_name} já está alocado a outra rota neste período."
-                    )
+                    raise forms.ValidationError(f"Conflito: O motorista {driver.full_name} já está alocado a outra rota neste período.")
         return cleaned_data
 
 
 class RouteCompletionForm(forms.ModelForm):
     actual_distance = forms.DecimalField(
-        label="Distância Real da Viagem (km)", 
-        required=True, 
+        label="Distância Real da Viagem (km)",
+        required=True,
         widget=forms.NumberInput(attrs={'placeholder': 'Ex: 1150.5'})
     )
     class Meta:
         model = Route
         fields = ['actual_distance']
+
+class BaseAlertConfigurationForm(forms.ModelForm):
+    class Meta:
+        model = AlertConfiguration
+        fields = ['service_type', 'km_threshold', 'days_threshold', 'is_active', 'priority']
+        widgets = {
+            'service_type': forms.HiddenInput(),
+            'km_threshold': forms.NumberInput(attrs={'placeholder': 'KM', 'style': 'width: 80px;'}),
+            'days_threshold': forms.NumberInput(attrs={'placeholder': 'Dias', 'style': 'width: 80px;'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'alert-active-checkbox'}),
+            'priority': forms.Select(attrs={'style': 'padding: 0.4rem; min-width: 90px;'}),
+        }
+        labels = {
+            'km_threshold': '',
+            'days_threshold': '',
+            'is_active': '',
+            'priority': '',
+        }
+
+AlertConfigurationFormSet = modelformset_factory(
+    AlertConfiguration,
+    form=BaseAlertConfigurationForm,
+    extra=0,
+    can_delete=False
+)

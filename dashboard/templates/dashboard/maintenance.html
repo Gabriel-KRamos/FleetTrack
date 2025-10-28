@@ -62,7 +62,6 @@
                                 data-mechanic_shop_name="{{ m.mechanic_shop_name }}"
                                 data-estimated_cost="{{ m.estimated_cost|default:'' }}"
                                 data-current_mileage="{{ m.current_mileage }}"
-                                data-notes="{{ m.notes|default:'' }}"
                                 data-status="{{ m.status }}">
                                 <td>{{ m.vehicle.plate }}</td>
                                 <td>{{ m.service_type }}</td>
@@ -109,7 +108,18 @@
                         </select>
                     </div>
 
-                    <div class="form-group span-2">{{ add_form.service_type.label_tag }}{{ add_form.service_type }}</div>
+                    <div class="form-group span-2">
+                        {{ add_form.service_choice.label_tag }}
+                        {{ add_form.service_choice }}
+                        {{ add_form.service_choice.errors }}
+                    </div>
+
+                    <div class="form-group span-2" id="service_type_other_wrapper" style="display: none;">
+                        {{ add_form.service_type_other.label_tag }}
+                        {{ add_form.service_type_other }}
+                        {{ add_form.service_type_other.errors }}
+                    </div>
+
                     <div class="form-group">{{ add_form.start_date.label_tag }}{{ add_form.start_date }}</div>
                     <div class="form-group">{{ add_form.end_date.label_tag }}{{ add_form.end_date }}</div>
                     <div class="form-group span-2">{{ add_form.mechanic_shop_name.label_tag }}{{ add_form.mechanic_shop_name }}</div>
@@ -123,8 +133,7 @@
                     </div>
                     
                     {{ add_form.current_mileage }}
-
-                    <div class="form-group span-2">{{ add_form.notes.label_tag }}{{ add_form.notes }}</div>
+                    
                 </div>
                 <div class="modal-footer"><button type="button" class="btn btn-secondary close-modal">Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div>
             </form>
