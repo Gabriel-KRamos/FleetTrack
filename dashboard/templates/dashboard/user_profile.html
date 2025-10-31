@@ -29,7 +29,7 @@
         </div>
         {% endif %}
 
-        <main class="profile-layout">
+        <main class="profile-layout {% if company_form.errors or user_form.errors %}edit-mode{% endif %}">
             <div class="card profile-header-card">
                 <div class="profile-avatar">👤</div>
                 <div class="profile-header-info">
@@ -57,6 +57,12 @@
                             <strong class="profile-display">{{ profile.company_name|default:'N/A' }}</strong>
                             <input type="text" class="profile-input" name="{{ company_form.company_name.name }}" id="{{ company_form.company_name.id_for_label }}" value="{{ company_form.company_name.value|default:'' }}">
                             {{ company_form.company_name.errors }}
+                        </div>
+                        <div class="profile-info-item">
+                            <small>CNPJ</small>
+                            <strong class="profile-display" id="display_cnpj">{{ profile.cnpj|default:'N/A' }}</strong>
+                            <input type="text" class="profile-input" name="{{ company_form.cnpj.name }}" id="{{ company_form.cnpj.id_for_label }}" value="{{ company_form.cnpj.value|default:'' }}" placeholder="XX.XXX.XXX/0001-XX" maxlength="18">
+                            {{ company_form.cnpj.errors }}
                         </div>
                         <div class="profile-info-item">
                             <small>Endereço de Email (Login)</small>

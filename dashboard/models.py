@@ -4,8 +4,10 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.utils.text import slugify
 from datetime import date, datetime
+from accounts.models import UserProfile
 
 class Driver(models.Model):
+    user_profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Perfil da Empresa")
     full_name = models.CharField(max_length=100, verbose_name="Nome Completo")
     email = models.EmailField(unique=True, verbose_name="Email")
     phone_number = models.CharField(max_length=20, blank=True, verbose_name="Telefone")
@@ -18,6 +20,7 @@ class Driver(models.Model):
         return self.full_name
 
 class Vehicle(models.Model):
+    user_profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Perfil da Empresa")
     STATUS_CHOICES = [
         ('available', 'Disponível'),
         ('on_route', 'Em Rota'),
@@ -85,6 +88,7 @@ class Vehicle(models.Model):
         return None
 
 class Maintenance(models.Model):
+    user_profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Perfil da Empresa")
     SERVICE_CHOICES_ALERT_CONFIG = [
         ('Revisão Geral', 'Revisão Geral'),
         ('Troca de Óleo e Filtros', 'Troca de Óleo e Filtros'),
@@ -128,6 +132,7 @@ class Maintenance(models.Model):
         return slugify(status)
 
 class Route(models.Model):
+    user_profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Perfil da Empresa")
     STATUS_CHOICES = [
         ('scheduled', 'Agendada'), ('in_progress', 'Em Andamento'),
         ('completed', 'Concluída'), ('canceled', 'Cancelada'),
@@ -187,6 +192,7 @@ class Route(models.Model):
 
 
 class AlertConfiguration(models.Model):
+    user_profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Perfil da Empresa")
     PRIORITY_CHOICES = [
         ('low', 'Baixa'),
         ('medium', 'Média'),
@@ -195,7 +201,6 @@ class AlertConfiguration(models.Model):
 
     service_type = models.CharField(
         max_length=100,
-        unique=True,
         choices=Maintenance.SERVICE_CHOICES_ALERT_CONFIG,
         verbose_name="Tipo de Serviço"
     )

@@ -51,13 +51,16 @@ class VehicleAlert:
         return self.overdue_value < other.overdue_value
 
 
-def get_vehicle_alerts(limit=None):
+def get_vehicle_alerts(user_profile, limit=None):
     alerts = []
     now = timezone.now()
     today = now.date()
-    active_vehicles = Vehicle.objects.exclude(status='disabled')
+    
+    if not user_profile:
+        return []
 
-    active_rules = AlertConfiguration.objects.filter(is_active=True)
+    active_vehicles = Vehicle.objects.filter(user_profile=user_profile).exclude(status='disabled')
+    active_rules = AlertConfiguration.objects.filter(user_profile=user_profile, is_active=True)
     rules_dict = {rule.service_type: rule for rule in active_rules}
 
     for vehicle in active_vehicles:
@@ -199,7 +202,9 @@ def get_diesel_price(uf):
 
 class DashboardView(LoginRequiredMixin, View):
     def get(self, request):
-        all_vehicles = list(Vehicle.objects.all())
+        profile = get_object_or_404(UserProfile, user=request.user)
+        
+        all_vehicles = list(Vehicle.objects.filter(user_profile=profile))
         vehicle_overview = {
             'total': len(all_vehicles), 'available': 0, 'in_use': 0,
             'maintenance': 0, 'unavailable': 0
@@ -210,14 +215,19 @@ class DashboardView(LoginRequiredMixin, View):
             elif dynamic_slug == 'on_route': vehicle_overview['in_use'] += 1
             elif dynamic_slug == 'maintenance': vehicle_overview['maintenance'] += 1
             elif dynamic_slug == 'disabled': vehicle_overview['unavailable'] += 1
+        
         driver_overview = {
-            'total': Driver.objects.count(),
-            'active': Driver.objects.filter(is_active=True).count(),
-            'inactive': Driver.objects.filter(is_active=False).count(),
+            'total': Driver.objects.filter(user_profile=profile).count(),
+            'active': Driver.objects.filter(user_profile=profile, is_active=True).count(),
+            'inactive': Driver.objects.filter(user_profile=profile, is_active=False).count(),
         }
+        
         now = timezone.now()
-        vehicle_alerts = get_vehicle_alerts(limit=5)
-        upcoming_maintenances = Maintenance.objects.select_related('vehicle').filter(status='scheduled', start_date__gte=now).order_by('start_date')[:3]
+        vehicle_alerts = get_vehicle_alerts(profile, limit=5)
+        upcoming_maintenances = Maintenance.objects.select_related('vehicle').filter(
+            user_profile=profile, status='scheduled', start_date__gte=now
+        ).order_by('start_date')[:3]
+        
         context = {
             'vehicle_overview': vehicle_overview,
             'driver_overview': driver_overview,
@@ -293,18 +303,23 @@ class UserProfileView(LoginRequiredMixin, View):
 
 class DriverListView(LoginRequiredMixin, View):
     def get(self, request):
-        queryset = Driver.objects.all().order_by('full_name')
+        profile = get_object_or_404(UserProfile, user=request.user)
+        
+        queryset = Driver.objects.filter(user_profile=profile).order_by('full_name')
         search_query = request.GET.get('search', '')
         if search_query:
             queryset = queryset.filter(Q(full_name__icontains=search_query) | Q(email__icontains=search_query) | Q(license_number__icontains=search_query))
+        
         status_filter = request.GET.get('status', '')
         if status_filter == 'active': queryset = queryset.filter(is_active=True)
         elif status_filter == 'inactive': queryset = queryset.filter(is_active=False)
+        
         stats = {
-            'total': Driver.objects.count(),
-            'active': Driver.objects.filter(is_active=True).count(),
-            'inactive': Driver.objects.filter(is_active=False).count()
+            'total': Driver.objects.filter(user_profile=profile).count(),
+            'active': Driver.objects.filter(user_profile=profile, is_active=True).count(),
+            'inactive': Driver.objects.filter(user_profile=profile, is_active=False).count()
         }
+        
         context = {
             'drivers': queryset, 'add_form': DriverForm(), 'stats': stats,
             'search_query': search_query, 'status_filter': status_filter
@@ -313,27 +328,35 @@ class DriverListView(LoginRequiredMixin, View):
 
 class VehicleListView(LoginRequiredMixin, View):
     def get(self, request):
-        all_vehicles = list(Vehicle.objects.select_related('driver').order_by('plate'))
+        profile = get_object_or_404(UserProfile, user=request.user)
+        
+        all_vehicles = list(Vehicle.objects.filter(user_profile=profile).select_related('driver').order_by('plate'))
         stats = { 'total': len(all_vehicles), 'available': 0, 'on_route': 0, 'maintenance': 0, 'disabled': 0 }
         filtered_vehicles = []
+        
         search_query = request.GET.get('search', '')
         status_filter = request.GET.get('status', '')
+        
         for vehicle in all_vehicles:
             dynamic_slug = vehicle.dynamic_status_slug
             if dynamic_slug == 'available': stats['available'] += 1
             elif dynamic_slug == 'on_route': stats['on_route'] += 1
             elif dynamic_slug == 'maintenance': stats['maintenance'] += 1
             elif dynamic_slug == 'disabled': stats['disabled'] += 1
+            
             passes_status_filter = not status_filter or dynamic_slug == status_filter
             passes_search_filter = True
+            
             if search_query:
                 search_query_lower = search_query.lower()
                 in_plate = search_query_lower in vehicle.plate.lower()
                 in_model = search_query_lower in vehicle.model.lower()
                 in_driver = (vehicle.driver and search_query_lower in vehicle.driver.full_name.lower())
                 passes_search_filter = in_plate or in_model or in_driver
+            
             if passes_status_filter and passes_search_filter:
                 filtered_vehicles.append(vehicle)
+        
         context = {
             'vehicles': filtered_vehicles, 'add_form': VehicleForm(),
             'status_choices': Vehicle.STATUS_CHOICES, 'search_query': search_query,
@@ -343,9 +366,12 @@ class VehicleListView(LoginRequiredMixin, View):
 
 class VehicleCreateView(LoginRequiredMixin, View):
     def post(self, request):
+        profile = get_object_or_404(UserProfile, user=request.user)
         form = VehicleForm(request.POST)
         if form.is_valid():
-            form.save()
+            new_vehicle = form.save(commit=False)
+            new_vehicle.user_profile = profile
+            new_vehicle.save()
             messages.success(request, 'Veículo adicionado com sucesso!')
         else:
             for field, errors in form.errors.items():
@@ -357,7 +383,8 @@ class VehicleCreateView(LoginRequiredMixin, View):
 
 class VehicleUpdateView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        vehicle = get_object_or_404(Vehicle, pk=pk)
+        profile = get_object_or_404(UserProfile, user=request.user)
+        vehicle = get_object_or_404(Vehicle, pk=pk, user_profile=profile)
         form = VehicleForm(request.POST, instance=vehicle)
         if form.is_valid():
             form.save()
@@ -372,7 +399,8 @@ class VehicleUpdateView(LoginRequiredMixin, View):
 
 class VehicleDeactivateView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        vehicle = get_object_or_404(Vehicle, pk=pk)
+        profile = get_object_or_404(UserProfile, user=request.user)
+        vehicle = get_object_or_404(Vehicle, pk=pk, user_profile=profile)
         vehicle.status = 'disabled'
         vehicle.save()
         messages.success(request, f'Veículo {vehicle.plate} desativado com sucesso.')
@@ -380,7 +408,8 @@ class VehicleDeactivateView(LoginRequiredMixin, View):
 
 class VehicleReactivateView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        vehicle = get_object_or_404(Vehicle, pk=pk)
+        profile = get_object_or_404(UserProfile, user=request.user)
+        vehicle = get_object_or_404(Vehicle, pk=pk, user_profile=profile)
         vehicle.status = 'available'
         vehicle.save()
         messages.success(request, f'Veículo {vehicle.plate} reativado com sucesso.')
@@ -388,9 +417,12 @@ class VehicleReactivateView(LoginRequiredMixin, View):
 
 class DriverCreateView(LoginRequiredMixin, View):
     def post(self, request):
+        profile = get_object_or_404(UserProfile, user=request.user)
         form = DriverForm(request.POST)
         if form.is_valid():
-            form.save()
+            new_driver = form.save(commit=False)
+            new_driver.user_profile = profile
+            new_driver.save()
             messages.success(request, 'Motorista adicionado com sucesso!')
         else:
             for field, errors in form.errors.items():
@@ -402,7 +434,8 @@ class DriverCreateView(LoginRequiredMixin, View):
 
 class DriverUpdateView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        driver = get_object_or_404(Driver, pk=pk)
+        profile = get_object_or_404(UserProfile, user=request.user)
+        driver = get_object_or_404(Driver, pk=pk, user_profile=profile)
         form = DriverForm(request.POST, instance=driver)
         if form.is_valid():
             form.save()
@@ -417,7 +450,8 @@ class DriverUpdateView(LoginRequiredMixin, View):
 
 class DriverDeactivateView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        driver = get_object_or_404(Driver, pk=pk)
+        profile = get_object_or_404(UserProfile, user=request.user)
+        driver = get_object_or_404(Driver, pk=pk, user_profile=profile)
         driver.is_active = False
         driver.demission_date = date.today()
         driver.save()
@@ -426,9 +460,12 @@ class DriverDeactivateView(LoginRequiredMixin, View):
 
 class MaintenanceCreateView(LoginRequiredMixin, View):
     def post(self, request):
-        form = MaintenanceForm(request.POST)
+        profile = get_object_or_404(UserProfile, user=request.user)
+        form = MaintenanceForm(request.POST, user_profile=profile)
         if form.is_valid():
-            form.save()
+            new_maint = form.save(commit=False)
+            new_maint.user_profile = profile
+            new_maint.save()
             messages.success(request, 'Manutenção agendada com sucesso!')
         else:
             for field, errors in form.errors.items():
@@ -440,8 +477,9 @@ class MaintenanceCreateView(LoginRequiredMixin, View):
 
 class MaintenanceUpdateView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        maintenance = get_object_or_404(Maintenance, pk=pk)
-        form = MaintenanceForm(request.POST, instance=maintenance)
+        profile = get_object_or_404(UserProfile, user=request.user)
+        maintenance = get_object_or_404(Maintenance, pk=pk, user_profile=profile)
+        form = MaintenanceForm(request.POST, instance=maintenance, user_profile=profile)
         if form.is_valid():
             form.save()
             messages.success(request, 'Manutenção atualizada com sucesso!')
@@ -455,7 +493,8 @@ class MaintenanceUpdateView(LoginRequiredMixin, View):
 
 class MaintenanceCancelView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        maintenance = get_object_or_404(Maintenance, pk=pk)
+        profile = get_object_or_404(UserProfile, user=request.user)
+        maintenance = get_object_or_404(Maintenance, pk=pk, user_profile=profile)
         maintenance.status = 'canceled'
         maintenance.save()
         messages.warning(request, f'Manutenção para o veículo {maintenance.vehicle.plate} foi cancelada.')
@@ -463,7 +502,8 @@ class MaintenanceCancelView(LoginRequiredMixin, View):
 
 class MaintenanceCompleteView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        maintenance = get_object_or_404(Maintenance, pk=pk)
+        profile = get_object_or_404(UserProfile, user=request.user)
+        maintenance = get_object_or_404(Maintenance, pk=pk, user_profile=profile)
         form = MaintenanceCompletionForm(request.POST, instance=maintenance)
         if form.is_valid():
             updated_maintenance = form.save(commit=False)
@@ -478,10 +518,13 @@ class MaintenanceCompleteView(LoginRequiredMixin, View):
 
 class MaintenanceListView(LoginRequiredMixin, View):
     def get(self, request):
-        queryset = Maintenance.objects.select_related('vehicle').order_by('-start_date')
+        profile = get_object_or_404(UserProfile, user=request.user)
+        
+        queryset = Maintenance.objects.filter(user_profile=profile).select_related('vehicle').order_by('-start_date')
         search_query = request.GET.get('search', '')
         if search_query:
             queryset = queryset.filter(Q(vehicle__plate__icontains=search_query) | Q(service_type__icontains=search_query) | Q(mechanic_shop_name__icontains=search_query))
+        
         status_filter = request.GET.get('status', '')
         now = timezone.now()
         if status_filter == 'scheduled': queryset = queryset.filter(status__in=['scheduled', 'in_progress'], start_date__gt=now)
@@ -489,17 +532,21 @@ class MaintenanceListView(LoginRequiredMixin, View):
         elif status_filter == 'overdue': queryset = queryset.filter(status__in=['scheduled', 'in_progress'], end_date__lt=now)
         elif status_filter == 'completed': queryset = queryset.filter(status='completed')
         elif status_filter == 'canceled': queryset = queryset.filter(status='canceled')
+        
         stats = {
-            'total': Maintenance.objects.count(),
-            'scheduled': Maintenance.objects.filter(status__in=['scheduled', 'in_progress'], start_date__gt=now).count(),
-            'in_progress': Maintenance.objects.filter(status__in=['scheduled', 'in_progress'], start_date__lte=now, end_date__gte=now).count(),
-            'completed': Maintenance.objects.filter(status='completed').count(),
+            'total': Maintenance.objects.filter(user_profile=profile).count(),
+            'scheduled': Maintenance.objects.filter(user_profile=profile, status__in=['scheduled', 'in_progress'], start_date__gt=now).count(),
+            'in_progress': Maintenance.objects.filter(user_profile=profile, status__in=['scheduled', 'in_progress'], start_date__lte=now, end_date__gte=now).count(),
+            'completed': Maintenance.objects.filter(user_profile=profile, status='completed').count(),
         }
+        
         status_choices_for_filter = list(Maintenance.STATUS_CHOICES)
         status_choices_for_filter.append(('overdue', 'Atrasada'))
-        all_active_vehicles = Vehicle.objects.exclude(status='disabled').order_by('plate')
+        
+        all_active_vehicles = Vehicle.objects.filter(user_profile=profile).exclude(status='disabled').order_by('plate')
+        
         context = {
-            'maintenances': queryset, 'add_form': MaintenanceForm(),
+            'maintenances': queryset, 'add_form': MaintenanceForm(user_profile=profile),
             'completion_form': MaintenanceCompletionForm(), 'stats': stats,
             'search_query': search_query, 'status_choices': status_choices_for_filter,
             'status_filter': status_filter, 'all_active_vehicles': all_active_vehicles,
@@ -509,9 +556,12 @@ class MaintenanceListView(LoginRequiredMixin, View):
 
 class RouteCreateView(LoginRequiredMixin, View):
     def post(self, request):
-        form = RouteForm(request.POST)
+        profile = get_object_or_404(UserProfile, user=request.user)
+        form = RouteForm(request.POST, user_profile=profile)
         if form.is_valid():
             route = form.save(commit=False)
+            route.user_profile = profile
+            
             route_details = calculate_route_details(route.start_location, route.end_location)
             if isinstance(route_details, str):
                 return JsonResponse({'success': False, 'errors': {'__all__': [route_details]}}, status=400)
@@ -521,9 +571,11 @@ class RouteCreateView(LoginRequiredMixin, View):
                      raise ValueError("Formato de UF inválido.")
             except Exception:
                 return JsonResponse({'success': False, 'errors': {'__all__': ["Formato de Local de Partida inválido. Use 'Cidade, UF'."]}}, status=400)
+            
             price_result = get_diesel_price(uf)
             if isinstance(price_result, str):
                 return JsonResponse({'success': False, 'errors': {'__all__': [price_result]}}, status=400)
+            
             route.estimated_distance = route_details['distance']
             route.estimated_toll_cost = route_details['toll_cost']
             route.fuel_price_per_liter = price_result
@@ -543,34 +595,41 @@ class RouteCreateView(LoginRequiredMixin, View):
 
 class RouteListView(LoginRequiredMixin, View):
     def get(self, request):
-        all_routes = list(Route.objects.select_related('driver', 'vehicle').order_by('-start_time'))
+        profile = get_object_or_404(UserProfile, user=request.user)
+        
+        all_routes = list(Route.objects.filter(user_profile=profile).select_related('driver', 'vehicle').order_by('-start_time'))
         search_query = request.GET.get('search', '')
         if search_query:
             all_routes = [route for route in all_routes if search_query.lower() in route.start_location.lower() or search_query.lower() in route.end_location.lower() or (route.driver and search_query.lower() in route.driver.full_name.lower()) or (route.vehicle and search_query.lower() in route.vehicle.plate.lower())]
-        stats = {'total': Route.objects.count(), 'active': 0, 'planned': 0, 'completed': 0, 'cancelled': 0}
-        for r in Route.objects.all():
+        
+        stats = {'total': Route.objects.filter(user_profile=profile).count(), 'active': 0, 'planned': 0, 'completed': 0, 'cancelled': 0}
+        for r in Route.objects.filter(user_profile=profile):
             status_slug = r.dynamic_status_slug
             if status_slug == 'in_progress': stats['active'] += 1
             elif status_slug == 'scheduled': stats['planned'] += 1
             elif status_slug == 'completed': stats['completed'] += 1
             elif status_slug == 'canceled': stats['cancelled'] += 1
+        
         status_filter = request.GET.get('status', '')
         if status_filter:
             filtered_routes = [route for route in all_routes if route.dynamic_status_slug == status_filter]
         else:
             filtered_routes = all_routes
+        
         context = {
             'routes': filtered_routes, 'stats': stats,
             'status_choices': Route.STATUS_CHOICES, 'search_query': search_query,
-            'status_filter': status_filter, 'add_form': RouteForm(),
+            'status_filter': status_filter, 'add_form': RouteForm(user_profile=profile),
             'completion_form': RouteCompletionForm()
         }
         return render(request, 'dashboard/routes.html', context)
 
 class RouteUpdateView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        route = get_object_or_404(Route, pk=pk)
-        form = RouteForm(request.POST, instance=route)
+        profile = get_object_or_404(UserProfile, user=request.user)
+        route = get_object_or_404(Route, pk=pk, user_profile=profile)
+        form = RouteForm(request.POST, instance=route, user_profile=profile)
+        
         if form.is_valid():
             updated_route = form.save(commit=False)
             route_details = calculate_route_details(updated_route.start_location, updated_route.end_location)
@@ -582,9 +641,11 @@ class RouteUpdateView(LoginRequiredMixin, View):
                      raise ValueError("Formato de UF inválido.")
             except Exception:
                 return JsonResponse({'success': False, 'errors': {'__all__': ["Formato de Local de Partida inválido. Use 'Cidade, UF'."]}}, status=400)
+            
             price_result = get_diesel_price(uf)
             if isinstance(price_result, str):
                 return JsonResponse({'success': False, 'errors': {'__all__': [price_result]}}, status=400)
+            
             updated_route.estimated_distance = route_details['distance']
             updated_route.estimated_toll_cost = route_details['toll_cost']
             updated_route.fuel_price_per_liter = price_result
@@ -604,7 +665,8 @@ class RouteUpdateView(LoginRequiredMixin, View):
 
 class RouteCancelView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        route = get_object_or_404(Route, pk=pk)
+        profile = get_object_or_404(UserProfile, user=request.user)
+        route = get_object_or_404(Route, pk=pk, user_profile=profile)
         route.status = 'canceled'
         route.save()
         messages.success(request, f'Rota de {route.start_location} para {route.end_location} cancelada.')
@@ -612,7 +674,8 @@ class RouteCancelView(LoginRequiredMixin, View):
 
 class RouteReactivateView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        route = get_object_or_404(Route, pk=pk)
+        profile = get_object_or_404(UserProfile, user=request.user)
+        route = get_object_or_404(Route, pk=pk, user_profile=profile)
         route.status = 'scheduled'
         route.save()
         messages.success(request, 'Rota reativada com sucesso.')
@@ -621,7 +684,8 @@ class RouteReactivateView(LoginRequiredMixin, View):
 
 class RouteCompleteView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        route = get_object_or_404(Route, pk=pk)
+        profile = get_object_or_404(UserProfile, user=request.user)
+        route = get_object_or_404(Route, pk=pk, user_profile=profile)
         form = RouteCompletionForm(request.POST, instance=route)
         if form.is_valid():
             completed_route = form.save(commit=False)
@@ -636,7 +700,9 @@ class RouteCompleteView(LoginRequiredMixin, View):
 
 class VehicleMaintenanceHistoryView(LoginRequiredMixin, View):
     def get(self, request, pk):
-        vehicle = get_object_or_404(Vehicle, pk=pk)
+        profile = get_object_or_404(UserProfile, user=request.user)
+        vehicle = get_object_or_404(Vehicle, pk=pk, user_profile=profile)
+        
         maintenances = Maintenance.objects.filter(vehicle=vehicle, status='completed').order_by('-actual_end_date')
         total_cost_agg = maintenances.aggregate(total=Sum('actual_cost'))
         total_cost = float(total_cost_agg['total'] or 0.0)
@@ -651,7 +717,9 @@ class VehicleMaintenanceHistoryView(LoginRequiredMixin, View):
 
 class VehicleRouteHistoryView(LoginRequiredMixin, View):
     def get(self, request, pk):
-        vehicle = get_object_or_404(Vehicle, pk=pk)
+        profile = get_object_or_404(UserProfile, user=request.user)
+        vehicle = get_object_or_404(Vehicle, pk=pk, user_profile=profile)
+        
         routes = Route.objects.filter(vehicle=vehicle, status='completed').select_related('vehicle').order_by('-end_time')
         stats = routes.aggregate(
             total_distance=Sum(Coalesce('actual_distance', 'estimated_distance')),
@@ -682,7 +750,9 @@ class VehicleRouteHistoryView(LoginRequiredMixin, View):
 
 class DriverRouteHistoryView(LoginRequiredMixin, View):
     def get(self, request, pk):
-        driver = get_object_or_404(Driver, pk=pk)
+        profile = get_object_or_404(UserProfile, user=request.user)
+        driver = get_object_or_404(Driver, pk=pk, user_profile=profile)
+        
         routes = Route.objects.filter(driver=driver, status='completed').select_related('vehicle').order_by('-end_time')
         stats = routes.aggregate(
             total_distance=Sum(Coalesce('actual_distance', 'estimated_distance')),
@@ -714,17 +784,19 @@ class DriverRouteHistoryView(LoginRequiredMixin, View):
 
 class AlertConfigView(LoginRequiredMixin, View):
     def get(self, request):
+        profile = get_object_or_404(UserProfile, user=request.user)
+        
         for choice_val, choice_disp in Maintenance.SERVICE_CHOICES_ALERT_CONFIG:
             AlertConfiguration.objects.get_or_create(
+                user_profile=profile,
                 service_type=choice_val,
                 defaults={'priority': 'medium'}
                 )
 
-        queryset = AlertConfiguration.objects.all().order_by('service_type')
+        queryset = AlertConfiguration.objects.filter(user_profile=profile).all().order_by('service_type')
         formset = AlertConfigurationFormSet(queryset=queryset)
-
-        all_alerts = get_vehicle_alerts()
-
+        
+        all_alerts = get_vehicle_alerts(profile)
 
         total_alerts = len(all_alerts)
         priority_counts = Counter(alert.priority for alert in all_alerts)
@@ -766,13 +838,16 @@ class AlertConfigView(LoginRequiredMixin, View):
         return render(request, 'dashboard/alert_config.html', context)
 
     def post(self, request):
-        formset = AlertConfigurationFormSet(request.POST)
+        profile = get_object_or_404(UserProfile, user=request.user)
+        queryset = AlertConfiguration.objects.filter(user_profile=profile)
+        formset = AlertConfigurationFormSet(request.POST, queryset=queryset)
+        
         if formset.is_valid():
             formset.save()
             messages.success(request, 'Configurações de alerta salvas com sucesso!')
             return redirect('alert-config')
         else:
-            all_alerts = get_vehicle_alerts()
+            all_alerts = get_vehicle_alerts(profile)
 
             total_alerts = len(all_alerts)
             priority_counts = Counter(alert.priority for alert in all_alerts)

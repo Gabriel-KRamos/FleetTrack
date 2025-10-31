@@ -59,28 +59,30 @@ document.addEventListener('DOMContentLoaded', function () {
             html += '<p>Nenhum registro de rota concluída encontrado.</p>';
         } else {
             html += `
-                <table class="history-table">
-                    <thead>
-                        <tr>
-                            <th>Rota</th>
-                            <th>Data Conclusão</th>
-                            <th>Distância</th>
-                            <th>Combustível (Est.)</th>
-                            <th>Pedágio (Est.)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${data.history.map(r => `
+                <div class="table-wrapper"> 
+                    <table class="history-table">
+                        <thead>
                             <tr>
-                                <td>${r.start_location} → ${r.end_location}</td>
-                                <td>${r.end_time}</td>
-                                <td>${r.distance.toFixed(2).replace('.', ',')} km</td>
-                                <td>${r.fuel_cost.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                                <td>${r.toll_cost.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                                <th>Rota</th>
+                                <th>Data Conclusão</th>
+                                <th>Distância</th>
+                                <th>Combustível (Est.)</th>
+                                <th>Pedágio (Est.)</th>
                             </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            ${data.history.map(r => `
+                                <tr>
+                                    <td>${r.start_location} → ${r.end_location}</td>
+                                    <td>${r.end_time}</td>
+                                    <td>${r.distance.toFixed(2).replace('.', ',')} km</td>
+                                    <td>${r.fuel_cost.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                                    <td>${r.toll_cost.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
             `;
         }
         panel.innerHTML = html;

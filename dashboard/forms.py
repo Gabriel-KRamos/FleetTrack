@@ -67,14 +67,19 @@ class MaintenanceForm(forms.ModelForm):
             'estimated_cost',
             'current_mileage'
         ]
-        exclude = ['service_type', 'status', 'actual_cost', 'actual_end_date', 'notes']
+        exclude = ['service_type', 'status', 'actual_cost', 'actual_end_date', 'notes', 'user_profile']
         widgets = {
             'current_mileage': forms.HiddenInput(),
         }
 
     def __init__(self, *args, **kwargs):
+        user_profile = kwargs.pop('user_profile', None)
         super().__init__(*args, **kwargs)
-        self.fields['vehicle'].queryset = Vehicle.objects.exclude(status='disabled')
+        
+        if user_profile:
+            self.fields['vehicle'].queryset = Vehicle.objects.filter(user_profile=user_profile).exclude(status='disabled')
+        else:
+            self.fields['vehicle'].queryset = Vehicle.objects.none()
 
         if self.instance and self.instance.pk:
             service_type = self.instance.service_type
@@ -155,19 +160,27 @@ class DriverForm(forms.ModelForm):
             ),
             'full_name': forms.TextInput(attrs={'placeholder': 'Nome completo do motorista'}),
             'email': forms.EmailInput(attrs={'placeholder': 'email@exemplo.com'}),
-            'license_number': forms.TextInput(attrs={'placeholder': '11 dígitos numéricos da CNH'}),
+            'license_number': forms.TextInput(attrs={'placeholder': 'XXX.XXX.XXX-XX', 'maxlength': '14'}),
         }
 
     def clean_license_number(self):
         license_number = self.cleaned_data.get('license_number')
         if not license_number:
             raise forms.ValidationError("Este campo é obrigatório.")
+        
         cleaned_license = re.sub(r'[^0-9]', '', license_number)
+        
         if len(cleaned_license) != 11:
             raise forms.ValidationError("A CNH deve conter exatamente 11 dígitos numéricos.")
+        
         query = Driver.objects.filter(license_number=cleaned_license, is_active=True)
+        
+        if self.instance and self.instance.user_profile:
+            query = query.filter(user_profile=self.instance.user_profile)
+
         if self.instance and self.instance.pk:
             query = query.exclude(pk=self.instance.pk)
+        
         if query.exists():
             raise forms.ValidationError("Esta CNH já está registada num motorista ativo.")
         return cleaned_license
@@ -176,9 +189,15 @@ class DriverForm(forms.ModelForm):
         email = self.cleaned_data.get('email')
         if not email:
             raise forms.ValidationError("Este campo é obrigatório.")
+        
         query = Driver.objects.filter(email=email, is_active=True)
+
+        if self.instance and self.instance.user_profile:
+            query = query.filter(user_profile=self.instance.user_profile)
+
         if self.instance and self.instance.pk:
             query = query.exclude(pk=self.instance.pk)
+
         if query.exists():
             raise forms.ValidationError("Este endereço de email já está em uso por um motorista ativo.")
         return email
@@ -199,12 +218,20 @@ class RouteForm(forms.ModelForm):
     class Meta:
         model = Route
         fields = ['start_location', 'end_location', 'vehicle', 'driver', 'start_time', 'end_time']
+        exclude = ['user_profile']
         widgets = {}
 
     def __init__(self, *args, **kwargs):
+        user_profile = kwargs.pop('user_profile', None)
         super().__init__(*args, **kwargs)
-        self.fields['vehicle'].queryset = Vehicle.objects.exclude(status='disabled').filter(average_fuel_consumption__isnull=False)
-        self.fields['driver'].queryset = Driver.objects.filter(is_active=True)
+        
+        if user_profile:
+            self.fields['vehicle'].queryset = Vehicle.objects.filter(user_profile=user_profile).exclude(status='disabled').filter(average_fuel_consumption__isnull=False)
+            self.fields['driver'].queryset = Driver.objects.filter(user_profile=user_profile, is_active=True)
+        else:
+            self.fields['vehicle'].queryset = Vehicle.objects.none()
+            self.fields['driver'].queryset = Driver.objects.none()
+
 
     def clean_location(self, location_data):
         pattern = re.compile(r'^.+,\s*[a-zA-Z]{2}$')
@@ -281,6 +308,7 @@ class BaseAlertConfigurationForm(forms.ModelForm):
 AlertConfigurationFormSet = modelformset_factory(
     AlertConfiguration,
     form=BaseAlertConfigurationForm,
+    fields=['service_type', 'km_threshold', 'days_threshold', 'is_active', 'priority'],
     extra=0,
     can_delete=False
 )
@@ -305,7 +333,27 @@ class UserProfileEditForm(forms.ModelForm):
 class CompanyProfileEditForm(forms.ModelForm):
     class Meta:
         model = UserProfile
-        fields = ['company_name']
+        fields = ['company_name', 'cnpj']
         labels = {
-            'company_name': 'Nome da Empresa'
+            'company_name': 'Nome da Empresa',
+            'cnpj': 'CNPJ'
         }
+    
+    def clean_cnpj(self):
+        cnpj = self.cleaned_data.get('cnpj')
+        if not cnpj:
+            raise forms.ValidationError("Este campo é obrigatório.")
+        
+        cleaned_cnpj = re.sub(r'[^\d]', '', cnpj)
+        
+        if len(cleaned_cnpj) != 14:
+             raise forms.ValidationError("O CNPJ deve conter 14 dígitos.")
+        
+        query = UserProfile.objects.filter(cnpj=cleaned_cnpj)
+        if self.instance and self.instance.pk:
+            query = query.exclude(pk=self.instance.pk)
+        
+        if query.exists():
+            raise forms.ValidationError("Este CNPJ já está em uso por outra empresa.")
+        
+        return cleaned_cnpj

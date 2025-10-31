@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', function() {
             passwordForm.style.display = 'none';
             profileLayout.classList.remove('password-edit-mode');
             passwordFormFields.forEach(input => input.value = '');
-            const errorLists = passwordForm.querySelectorAll('.errorlist'); // Busca erros dentro do form de senha
+            const errorLists = passwordForm.querySelectorAll('.errorlist'); 
             errorLists.forEach(list => list.innerHTML = '');
         });
     }
@@ -58,5 +58,43 @@ document.addEventListener('DOMContentLoaded', function() {
     if (passwordFormHasErrors && passwordForm) {
          passwordForm.style.display = 'block';
          profileLayout.classList.add('password-edit-mode');
+    }
+
+    function formatCnpj(value) {
+        if (!value) return '';
+        let v = value.replace(/\D/g, '');
+        if (v.length > 14) v = v.substring(0, 14);
+        
+        if (v.length > 12) {
+            v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+        } else if (v.length > 8) {
+            v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{1,4})$/, '$1.$2.$3/$4');
+        } else if (v.length > 5) {
+            v = v.replace(/^(\d{2})(\d{3})(\d{1,3})$/, '$1.$2.$3');
+        } else if (v.length > 2) {
+            v = v.replace(/^(\d{2})(\d{1,3})$/, '$1.$2');
+        }
+        return v;
+    }
+
+    const cnpjDisplay = document.getElementById('display_cnpj');
+    if (cnpjDisplay) {
+        cnpjDisplay.textContent = formatCnpj(cnpjDisplay.textContent);
+    }
+
+    const cnpjInput = document.getElementById('id_cnpj');
+    if (cnpjInput) {
+        
+        if (profileLayout.classList.contains('edit-mode')) {
+             cnpjInput.value = formatCnpj(cnpjInput.value);
+        }
+
+        editProfileBtn.addEventListener('click', function() {
+            cnpjInput.value = formatCnpj(cnpjInput.value);
+        });
+
+        cnpjInput.addEventListener('input', function (e) {
+            e.target.value = formatCnpj(e.target.value);
+        });
     }
 });
