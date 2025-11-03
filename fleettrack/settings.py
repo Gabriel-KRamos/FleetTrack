@@ -1,16 +1,18 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv # Adicionado
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Carrega as variáveis do arquivo .env
+load_dotenv(os.path.join(BASE_DIR, '.env'))
 
-SECRET_KEY = 'django-insecure-$)d1x%9w^!4ki#%t1!jnrcq0d4c2_b=sh!a_z3x@kehgt3g7n8'
-
-DEBUG = True
+# Lê as chaves do .env
+SECRET_KEY = os.getenv('SECRET_KEY')
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
+GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
 
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
-
-GOOGLE_MAPS_API_KEY = ''
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -53,15 +55,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'fleettrack.wsgi.application'
 
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'fleettrack_db', 
-        'USER': 'root',
-        'PASSWORD': 'root',
-        'HOST': 'localhost',
-        'PORT': '3306',
+        'NAME': os.getenv('DB_NAME'), 
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT'),
     }
 }
 
