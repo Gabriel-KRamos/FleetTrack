@@ -77,6 +77,8 @@ if TESTING:
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': ':memory:',
     }
+    SECRET_KEY = 'dummy-secret-key-for-testing'
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {
