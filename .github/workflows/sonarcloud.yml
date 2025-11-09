@@ -38,15 +38,6 @@ jobs:
           node-version: '18'
           cache: 'npm'
 
-      - name: Install Frontend Dependencies
-        run: |
-          echo "Tentando instalar dependências npm..."
-          npm ci || echo "Nenhum package-lock.json encontrado ou falha na instalação. A continuar..."
-
-      - name: Run Frontend Tests
-        run: |
-          npm test --if-present || true
-
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
