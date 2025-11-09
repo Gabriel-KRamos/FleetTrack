@@ -1,18 +1,21 @@
 import os
 from pathlib import Path
-from dotenv import load_dotenv # Adicionado
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Carrega as variáveis do arquivo .env
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
-# Lê as chaves do .env
 SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+ALLOWED_HOSTS = [
+    'fleettrack-app-475400.rj.r.appspot.com', 
+    '.appspot.com', 
+    'localhost',
+    '127.0.0.1'
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -93,7 +96,7 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
-
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_build')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_REDIRECT_URL = 'dashboard'

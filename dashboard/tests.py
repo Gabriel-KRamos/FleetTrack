@@ -1,8 +1,11 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
-from .models import Driver, Vehicle
+from .models import Driver, Vehicle, Route
 from datetime import date
+from django.utils import timezone
+from datetime import timedelta
+from accounts.models import UserProfile 
 
 class VehicleViewsTestCase(TestCase):
     """Suite de testes para as views relacionadas a Veículos."""
@@ -12,11 +15,15 @@ class VehicleViewsTestCase(TestCase):
 
         self.user = User.objects.create_user(username='testuser', password='password123')
 
+        self.user_profile = UserProfile.objects.create(
+            user=self.user, 
+            company_name="Empresa de Teste"
+        )
 
         self.client = Client()
 
-
         self.driver = Driver.objects.create(
+            user_profile=self.user_profile,
             full_name='Motorista de Teste',
             email='teste@email.com',
             license_number='123456789',
@@ -24,13 +31,27 @@ class VehicleViewsTestCase(TestCase):
         )
 
         self.vehicle = Vehicle.objects.create(
+            user_profile=self.user_profile,
             plate='TST-1234',
             model='Modelo de Teste',
             year=2024,
-            mileage=10000,
-            driver=self.driver,
+            initial_mileage=10000, 
             acquisition_date=date(2024, 1, 1)
         )
+
+
+        now = timezone.now()
+        Route.objects.create(
+            user_profile=self.user_profile,
+            vehicle=self.vehicle,
+            driver=self.driver,
+            start_location="Origem Teste",
+            end_location="Destino Teste",
+            start_time=now - timedelta(hours=1),
+            end_time=now + timedelta(hours=2),
+            status='in_progress'
+        )
+
 
         self.list_url = reverse('vehicle-list')
 
@@ -38,8 +59,6 @@ class VehicleViewsTestCase(TestCase):
     def test_vehicle_list_view_redirects_for_not_logged_in_user(self):
         """
         Teste 1: Verifica se um utilizador não autenticado é redirecionado.
-        As suas páginas do dashboard exigem login, então este teste garante
-        que a proteção está a funcionar.
         """
         response = self.client.get(self.list_url)
 
@@ -63,13 +82,12 @@ class VehicleViewsTestCase(TestCase):
     def test_vehicle_list_view_displays_vehicle_information(self):
         """
         Teste 3: Verifica se a página exibe as informações do veículo que criámos.
-        Este é um teste de conteúdo. Ele garante que os dados do banco de dados
-        estão a ser corretamente apresentados no template.
         """
         self.client.login(username='testuser', password='password123')
 
         response = self.client.get(self.list_url)
 
-        self.assertContains(response, self.vehicle.plate) 
+        self.assertContains(response, self.vehicle.plate, status_code=200) 
         self.assertContains(response, self.vehicle.model)
+        
         self.assertContains(response, self.driver.full_name)

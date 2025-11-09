@@ -1,0 +1,27 @@
+runtime: python312
+
+env_variables:
+  SECRET_KEY: "django-insecure-$)d1x%9w^!4ki#%t1!jnrcq0d4c2_b=sh!a_z3x@kehgt3g7n8"
+  DEBUG: "False"
+  GOOGLE_MAPS_API_KEY: "AIzaSyAOMyEmsx3918PS1IuCCk4rqujbOtVNtTI"
+
+  DB_NAME: "fleettrack_db"           
+  DB_USER: "fleetUser"                      
+  DB_PASSWORD: "s<t>v;ey_Bp-I/u2"
+  DB_HOST: "/cloudsql/fleettrack-app-475400:southamerica-east1:fleettrack-db"
+  DB_PORT: "3306"
+
+  APPENGINE_URL: "$(gcloud config get-value project).uc.r.appspot.com"
+
+beta_settings:
+  cloud_sql_instances: "fleettrack-app-475400:southamerica-east1:fleettrack-db"
+
+entrypoint: >-
+  python manage.py migrate --no-input &&
+  gunicorn -b :$PORT fleettrack.wsgi:application
+
+handlers:
+- url: /static/
+  static_dir: staticfiles_build/
+- url: /.*
+  script: auto
