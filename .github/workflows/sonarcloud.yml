@@ -21,7 +21,7 @@ jobs:
           python-version: '3.12'
 
       # -----------------------------------------------------------------
-      # Testes E2E
+      # Etapas do django-ci.yml (Testes E2E)
       # -----------------------------------------------------------------
       - name: Install Google Chrome
         run: |
@@ -39,7 +39,7 @@ jobs:
           sudo chmod +x /usr/bin/chromedriver
 
       # -----------------------------------------------------------------
-      # Testes Backend
+      # Etapas do django-ci.yml (Testes Backend)
       # -----------------------------------------------------------------
       - name: Install Python Dependencies
         run: |
@@ -48,6 +48,7 @@ jobs:
           
       - name: Run Tests and Generate Coverage
         env:
+
           SECRET_KEY: "dummy-key-for-ci"
           DEBUG: "False"
         run: |
@@ -63,6 +64,7 @@ jobs:
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2.2.0
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
