@@ -5,6 +5,11 @@ from django.utils import timezone
 from datetime import date, timedelta
 from unittest.mock import patch
 from decimal import Decimal
+from django.contrib.staticfiles.testing import LiveServerTestCase
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 from .models import Driver, Vehicle, Route, Maintenance, AlertConfiguration
 from accounts.models import UserProfile
@@ -400,3 +405,56 @@ class RouteViewMockTests(DashboardBaseTestCase):
         
         mock_calculate_route.assert_called_once_with('Joinville, SC', 'Curitiba, PR')
         mock_get_price.assert_called_once_with('SC')
+
+class E2EBrowserTests(LiveServerTestCase):
+    
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        options = webdriver.ChromeOptions()
+        options.add_argument('--no-sandbox')
+        options.add_argument('--headless')
+        options.add_argument('--disable-gpu')
+        options.add_argument('--disable-dev-shm-usage') 
+        options.add_argument("window-size=1920x1080")
+        
+        cls.driver = webdriver.Chrome(options=options)
+        cls.driver.implicitly_wait(10)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.driver.quit()
+        super().tearDownClass()
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='e2e_user', password='e2e_password')
+        UserProfile.objects.create(user=self.user, company_name="Empresa E2E")
+
+    def test_login_flow_and_open_vehicle_modal(self):
+        self.driver.get(f'{self.live_server_url}{reverse("login")}')
+        
+        self.driver.find_element(By.NAME, 'username').send_keys('e2e_user')
+        self.driver.find_element(By.NAME, 'password').send_keys('e2e_password')
+        self.driver.find_element(By.CLASS_NAME, 'btn-signin').click()
+
+        WebDriverWait(self.driver, 10).until(
+            EC.presence_of_element_located((By.TAG_NAME, 'h1'))
+        )
+        h1_text = self.driver.find_element(By.TAG_NAME, 'h1').text
+        self.assertEqual(h1_text, 'Dashboard de Gestão de Frotas')
+
+        self.driver.find_element(By.CSS_SELECTOR, 'a.nav-card[href*="vehicle-list"]').click()
+        
+        WebDriverWait(self.driver, 10).until(
+            EC.text_to_be_present_in_element((By.TAG_NAME, 'h1'), 'Gerenciamento de Veículos')
+        )
+        
+        add_button = self.driver.find_element(By.ID, 'open-add-vehicle-modal')
+        add_button.click()
+        
+        WebDriverWait(self.driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, '#add-vehicle-modal.active'))
+        )
+        
+        modal_title = self.driver.find_element(By.ID, 'vehicle-modal-title').text
+        self.assertEqual(modal_title, 'Adicionar Novo Veículo')
