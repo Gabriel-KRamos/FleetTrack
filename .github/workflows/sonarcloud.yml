@@ -22,20 +22,22 @@ jobs:
 
       - name: Setup Chrome and ChromeDriver
         uses: nanasess/setup-chromedriver@v2
-
+      
       - name: Install Python Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r fleettrack/requirements.txt
+          # CORREÇÃO: Removido o prefixo 'fleettrack/'
+          pip install -r requirements.txt
           
       - name: Run Tests and Generate Coverage
         env:
           SECRET_KEY: "dummy-key-for-ci"
           DEBUG: "False"
         run: |
-          cd fleettrack
+          # CORREÇÃO: Removido o 'cd fleettrack'
+          # CORREÇÃO: Removido o prefixo '../' do relatório
           coverage run manage.py test
-          coverage xml -o ../coverage-report.xml
+          coverage xml -o coverage-report.xml
           
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2.2.0
@@ -46,6 +48,6 @@ jobs:
           args: >
             -Dsonar.organization=fleettrack-1
             -Dsonar.projectKey=FleetTrack
-            -Dsonar.sources=fleettrack/
+            -Dsonar.sources=accounts/,dashboard/
             -Dsonar.python.coverage.reportPaths=coverage-report.xml
             -Dsonar.python.version=3.12
