@@ -10,10 +10,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     datasets: [{
                         data: chartData,
                         backgroundColor: ['#4CAF50', '#FFC107', '#F44336'],
-                        // --- INÍCIO DA CORREÇÃO ---
-                        borderColor: '#ffffff', // Cor do espaçamento (branco)
-                        borderWidth: 4,          // Largura do espaçamento
-                        // --- FIM DA CORREÇÃO ---
+                        borderColor: '#ffffff',
+                        borderWidth: 4,
                         cutout: '75%'
                     }]
                 },
