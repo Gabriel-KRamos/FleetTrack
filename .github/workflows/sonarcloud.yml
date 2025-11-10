@@ -23,10 +23,9 @@ jobs:
       # -----------------------------------------------------------------
       # Testes E2E
       # -----------------------------------------------------------------
-      - name: Install Google Chrome
+      - name: Setup Chrome and ChromeDriver
         run: |
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
+          uses: nanasess/setup-chromedriver@v2
 
       - name: Install ChromeDriver
         run: |
