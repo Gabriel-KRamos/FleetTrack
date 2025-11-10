@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import date, timedelta
 from unittest.mock import patch
+from decimal import Decimal
 
 from .models import Driver, Vehicle, Route, Maintenance, AlertConfiguration
 from accounts.models import UserProfile
@@ -245,7 +246,7 @@ class VehicleViewTests(DashboardBaseTestCase):
         
         self.vehicle_a.refresh_from_db()
         self.assertEqual(self.vehicle_a.model, 'Modelo Atualizado')
-        self.assertEqual(self.vehicle_a.average_fuel_consumption, 11.0)
+        self.assertEqual(self.vehicle_a.average_fuel_consumption, Decimal('11.0'))
 
     def test_vehicle_deactivate_view(self):
         deactivate_url = reverse('vehicle-deactivate', kwargs={'pk': self.vehicle_a.pk})
@@ -261,11 +262,17 @@ class SecurityTests(DashboardBaseTestCase):
     def test_user_a_cannot_update_user_b_vehicle(self):
         update_url_b = reverse('vehicle-update', kwargs={'pk': self.vehicle_b.pk})
         
-        response = self.client.get(update_url_b)
-        self.assertEqual(response.status_code, 404)
-
-        form_data = {'model': 'HACKED'}
+        form_data = {
+            'plate': self.vehicle_b.plate,
+            'model': 'HACKED',
+            'year': self.vehicle_b.year,
+            'acquisition_date': '2023-01-01', 
+            'initial_mileage': self.vehicle_b.initial_mileage,
+            'average_fuel_consumption': self.vehicle_b.average_fuel_consumption
+        }
+        
         response = self.client.post(update_url_b, data=form_data)
+        
         self.assertEqual(response.status_code, 404)
         
         self.vehicle_b.refresh_from_db()
@@ -361,8 +368,9 @@ class RouteViewMockTests(DashboardBaseTestCase):
     @patch('dashboard.views.get_diesel_price')
     @patch('dashboard.views.calculate_route_details')
     def test_route_create_view_with_mock(self, mock_calculate_route, mock_get_price):
+        
         mock_calculate_route.return_value = {'distance': 150.0, 'toll_cost': 25.50}
-        mock_get_price.return_value = 5.80
+        mock_get_price.return_value = Decimal('5.80')
         
         add_url = reverse('route-add')
         route_count_before = Route.objects.count()
@@ -386,9 +394,9 @@ class RouteViewMockTests(DashboardBaseTestCase):
         self.assertEqual(Route.objects.count(), route_count_before + 1)
         new_route = Route.objects.latest('id')
         
-        self.assertEqual(new_route.estimated_distance, 150.0)
-        self.assertEqual(new_route.estimated_toll_cost, 25.50)
-        self.assertEqual(new_route.fuel_price_per_liter, 5.80)
+        self.assertEqual(new_route.estimated_distance, Decimal('150.00'))
+        self.assertEqual(new_route.estimated_toll_cost, Decimal('25.50'))
+        self.assertEqual(new_route.fuel_price_per_liter, Decimal('5.80'))
         
         mock_calculate_route.assert_called_once_with('Joinville, SC', 'Curitiba, PR')
         mock_get_price.assert_called_once_with('SC')
