@@ -20,55 +20,33 @@ jobs:
         with:
           python-version: '3.12'
 
-      # -----------------------------------------------------------------
-      # Testes E2E
-      # -----------------------------------------------------------------
-      - name: Install Google Chrome
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
+      - name: Setup Chrome and ChromeDriver
+        uses: nanasess/setup-chromedriver@v2
 
-      - name: Install ChromeDriver
-        run: |
-          CHROME_VERSION=$(google-chrome --version | cut -f 3 -d ' ' | cut -d '.' -f 1-3)
-          CHROME_DRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
-          wget -q "https://chromedriver.storage.googleapis.com/$CHROME_DRIVER_VERSION/chromedriver_linux64.zip"
-          unzip chromedriver_linux64.zip
-          sudo mv chromedriver /usr/bin/chromedriver
-          sudo chown root:root /usr/bin/chromedriver
-          sudo chmod +x /usr/bin/chromedriver
-
-      # -----------------------------------------------------------------
-      # Testes Backend
-      # -----------------------------------------------------------------
       - name: Install Python Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r fleettrack/requirements.txt
+          # Assumindo que o requirements.txt está na raiz
+          pip install -r requirements.txt
           
       - name: Run Tests and Generate Coverage
         env:
-
           SECRET_KEY: "dummy-key-for-ci"
           DEBUG: "False"
         run: |
-          cd fleettrack
-          # Gera o relatório de cobertura
+          # Assumindo que manage.py está na raiz
           coverage run manage.py test
-          # Exporta o relatório para o formato XML que o SonarCloud entende
-          coverage xml -o ../coverage-report.xml
+          coverage xml -o coverage-report.xml
           
-      # -----------------------------------------------------------------
-      # Etapa do SonarCloud
-      # -----------------------------------------------------------------
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2.2.0
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
             -Dsonar.organization=fleettrack-1
             -Dsonar.projectKey=FleetTrack
-            -Dsonar.sources=fleettrack/
+            -Dsonar.sources=accounts/,dashboard/,fleettrack/
             -Dsonar.python.coverage.reportPaths=coverage-report.xml
             -Dsonar.python.version=3.12
