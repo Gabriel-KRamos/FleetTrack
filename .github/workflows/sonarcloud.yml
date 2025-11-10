@@ -2,9 +2,9 @@ name: Build, Test & SonarCloud Analysis
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "code" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "code" ]
 
 jobs:
   analysis:
@@ -21,7 +21,7 @@ jobs:
           python-version: '3.12'
 
       # -----------------------------------------------------------------
-      # Etapas do django-ci.yml (Testes E2E)
+      # Testes E2E
       # -----------------------------------------------------------------
       - name: Install Google Chrome
         run: |
@@ -39,7 +39,7 @@ jobs:
           sudo chmod +x /usr/bin/chromedriver
 
       # -----------------------------------------------------------------
-      # Etapas do django-ci.yml (Testes Backend)
+      # Testes Backend
       # -----------------------------------------------------------------
       - name: Install Python Dependencies
         run: |
@@ -64,7 +64,6 @@ jobs:
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2.2.0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
