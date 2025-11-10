@@ -437,9 +437,14 @@ class E2EBrowserTests(LiveServerTestCase):
         self.driver.find_element(By.NAME, 'password').send_keys('e2e_password')
         self.driver.find_element(By.CLASS_NAME, 'btn-signin').click()
 
-        WebDriverWait(self.driver, 10).until(
-            EC.presence_of_element_located((By.TAG_NAME, 'h1'))
-        )
+        try:
+            WebDriverWait(self.driver, 10).until(
+                EC.text_to_be_present_in_element((By.TAG_NAME, 'h1'), 'Dashboard de Gestão de Frotas')
+            )
+        except Exception as e:
+            self.driver.save_screenshot('login_failure_screenshot.png')
+            raise AssertionError(f"Falha ao fazer login: a página do dashboard não carregou. {e}")
+
         h1_text = self.driver.find_element(By.TAG_NAME, 'h1').text
         self.assertEqual(h1_text, 'Dashboard de Gestão de Frotas')
 
