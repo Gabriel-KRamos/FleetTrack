@@ -75,7 +75,7 @@ TESTING = 'test' in sys.argv
 if TESTING:
     DATABASES['default'] = {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db_test.sqlite3',
+        'NAME': 'file:memdb_test?mode=memory&cache=shared',
     }
     SECRET_KEY = 'dummy-secret-key-for-testing'
 
