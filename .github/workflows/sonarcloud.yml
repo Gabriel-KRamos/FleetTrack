@@ -3,10 +3,10 @@ name: SonarCloud Analysis
 on:
   push:
     branches:
-      - code
+      - core
   pull_request:
     branches:
-      - code
+      - core
 
 jobs:
   build_and_analyze:
@@ -36,13 +36,41 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt 
 
-      - name: Run ALL Tests & Generate Coverage
+      - name: Install Xvfb (Virtual Display)
+        run: sudo apt-get install -y xvfb
+      
+      - name: Run Backend Tests (Models, Forms, API, etc.)
         run: |
-          sudo apt-get install -y xvfb
-          xvfb-run coverage run --source='.' manage.py test dashboard accounts
-          coverage xml -o coverage.xml
+          coverage run --source='.' manage.py test accounts
+          coverage run --append --source='.' manage.py test dashboard.tests.DashboardBaseTestCase
+          coverage run --append --source='.' manage.py test dashboard.tests.ModelTests
+          coverage run --append --source='.' manage.py test dashboard.tests.FormTests
+          coverage run --append --source='.' manage.py test dashboard.tests.VehicleViewTests
+          coverage run --append --source='.' manage.py test dashboard.tests.SecurityTests
+          coverage run --append --source='.' manage.py test dashboard.tests.LogicTests
+          coverage run --append --source='.' manage.py test dashboard.tests.ApiViewTests
+          coverage run --append --source='.' manage.py test dashboard.tests.RouteViewMockTests
         env:
           TESTING: "true"
+
+      - name: Run Frontend - Page Navigation Test
+        run: |
+          xvfb-run coverage run --append --source='.' manage.py test dashboard.tests.SimplifiedFrontendTests.test_page_navigation
+        env:
+          TESTING: "true"
+
+      - name: Run Frontend - Modal Tests
+        run: |
+          xvfb-run coverage run --append --source='.' manage.py test dashboard.tests.SimplifiedFrontendTests.test_driver_modal_opens
+          xvfb-run coverage run --append --source='.' manage.py test dashboard.tests.SimplifiedFrontendTests.test_vehicle_modal_opens
+          xvfb-run coverage run --append --source='.' manage.py test dashboard.tests.SimplifiedFrontendTests.test_route_modal_opens
+          xvfb-run coverage run --append --source='.' manage.py test dashboard.tests.SimplifiedFrontendTests.test_maintenance_modal_opens
+          xvfb-run coverage run --append --source='.' manage.py test dashboard.tests.SimplifiedFrontendTests.test_alert_config_modal_opens
+        env:
+          TESTING: "true"
+
+      - name: Generate Final Coverage Report
+        run: coverage xml -o coverage.xml
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
