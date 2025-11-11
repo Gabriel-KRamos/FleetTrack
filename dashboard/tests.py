@@ -472,7 +472,7 @@ class MotoristaE2ETest(LiveServerTestCase):
              EC.visibility_of_element_located((By.ID, "id_full_name"))
         )
         
-        time.sleep(0.2)
+        time.sleep(0.2) 
 
         form_field.send_keys("Motorista Selenium")
         self.driver.find_element(By.ID, "id_email").send_keys("selenium@driver.com")

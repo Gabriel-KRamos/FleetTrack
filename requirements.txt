@@ -38,3 +38,4 @@ urllib3==2.5.0
 gunicorn
 coverage
 selenium
+db_test.sqlite3
