@@ -92,6 +92,7 @@ class ModelTests(DashboardBaseTestCase):
             actual_distance=150.5
         )
         
+        self.vehicle_a.refresh_from_db()
         self.assertEqual(self.vehicle_a.mileage, 10150)
 
     def test_vehicle_dynamic_status_property(self):
@@ -104,6 +105,7 @@ class ModelTests(DashboardBaseTestCase):
             end_time=self.now + timedelta(hours=2),
             status='in_progress'
         )
+        self.vehicle_a.refresh_from_db()
         self.assertEqual(self.vehicle_a.dynamic_status_slug, 'on_route')
         
         Maintenance.objects.create(
@@ -115,6 +117,7 @@ class ModelTests(DashboardBaseTestCase):
             current_mileage=10150,
             status='in_progress'
         )
+        self.vehicle_a.refresh_from_db()
         self.assertEqual(self.vehicle_a.dynamic_status_slug, 'maintenance')
 
     def test_model_str_methods(self):
@@ -178,8 +181,8 @@ class FormTests(DashboardBaseTestCase):
             'start_location': 'Local A, SC', 'end_location': 'Local B, SC',
             'vehicle': self.vehicle_a.pk,
             'driver': self.driver_a.pk,
-            'start_time': self.now + timedelta(days=1, hours=2),
-            'end_time': self.now + timedelta(days=1, hours=5),
+            'start_time': (self.now + timedelta(days=1, hours=2)).strftime('%d/%m/%Y %H:%M'),
+            'end_time': (self.now + timedelta(days=1, hours=5)).strftime('%d/%m/%Y %H:%M'),
         }
         
         form = RouteForm(data=form_data, user_profile=self.profile_a)
@@ -206,7 +209,7 @@ class VehicleViewTests(DashboardBaseTestCase):
         self.assertNotContains(response, self.vehicle_b.plate)
 
     def test_vehicle_create_view_post_success(self):
-        vehicle_count_before = Vehicle.objects.count()
+        vehicle_count_before = Vehicle.objects.filter(user_profile=self.profile_a).count()
         
         form_data = {
             'plate': 'NEW-0001', 'model': 'Novo Modelo', 'year': 2025,
@@ -219,12 +222,12 @@ class VehicleViewTests(DashboardBaseTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, self.list_url)
         
-        self.assertEqual(Vehicle.objects.count(), vehicle_count_before + 1)
+        self.assertEqual(Vehicle.objects.filter(user_profile=self.profile_a).count(), vehicle_count_before + 1)
         new_vehicle = Vehicle.objects.get(plate='NEW-0001')
         self.assertEqual(new_vehicle.user_profile, self.profile_a)
 
     def test_vehicle_create_view_post_invalid(self):
-        vehicle_count_before = Vehicle.objects.count()
+        vehicle_count_before = Vehicle.objects.filter(user_profile=self.profile_a).count()
         
         form_data = {
             'plate': 'INVALIDO', 'model': '', 'year': 2025,
@@ -235,7 +238,7 @@ class VehicleViewTests(DashboardBaseTestCase):
         
         self.assertEqual(response.status_code, 302)
         
-        self.assertEqual(Vehicle.objects.count(), vehicle_count_before)
+        self.assertEqual(Vehicle.objects.filter(user_profile=self.profile_a).count(), vehicle_count_before)
 
     def test_vehicle_update_view_post(self):
         form_data = {
@@ -381,7 +384,7 @@ class RouteViewMockTests(DashboardBaseTestCase):
         mock_get_price.return_value = Decimal('5.80')
         
         add_url = reverse('route-add')
-        route_count_before = Route.objects.count()
+        route_count_before = Route.objects.filter(user_profile=self.profile_a).count()
 
         form_data = {
             'start_location': 'Joinville, SC',
@@ -399,7 +402,7 @@ class RouteViewMockTests(DashboardBaseTestCase):
         data = response.json()
         self.assertTrue(data['success'])
         
-        self.assertEqual(Route.objects.count(), route_count_before + 1)
+        self.assertEqual(Route.objects.filter(user_profile=self.profile_a).count(), route_count_before + 1)
         new_route = Route.objects.latest('id')
         
         self.assertEqual(new_route.estimated_distance, Decimal('150.00'))
@@ -445,7 +448,7 @@ class MotoristaE2ETest(LiveServerTestCase):
     def test_fluxo_completo_adicionar_motorista(self):
         self.driver.get(self.login_url)
         self.driver.find_element(By.ID, "id_username").send_keys('selenium@teste.com')
-        self.driver.find_element(By.ID, "id_password").send_keys('password1S23')
+        self.driver.find_element(By.ID, "id_password").send_keys('password123')
         self.driver.find_element(By.CLASS_NAME, "btn-signin").click()
 
         WebDriverWait(self.driver, 10).until(
@@ -459,7 +462,7 @@ class MotoristaE2ETest(LiveServerTestCase):
             EC.title_contains("Gerenciamento de Motoristas")
         )
         
-        self.assertContains(self.driver.page_source, "Nenhum motorista encontrado")
+        self.assertIn("Nenhum motorista encontrado", self.driver.page_source)
         self.assertEqual(Driver.objects.count(), 0)
 
         add_button = self.driver.find_element(By.ID, "open-add-driver-modal")
@@ -474,7 +477,7 @@ class MotoristaE2ETest(LiveServerTestCase):
         self.driver.find_element(By.ID, "id_full_name").send_keys("Motorista Selenium")
         self.driver.find_element(By.ID, "id_email").send_keys("selenium@driver.com")
         self.driver.find_element(By.ID, "id_license_number").send_keys("12345678901")
-        self.driver.find_element(By.ID, "id_admission_date").send_keys("01/01/2025")
+        self.driver.find_element(By.ID, "id_admission_date").send_keys("2025-01-01")
 
         self.driver.find_element(By.ID, "driver-submit-button").click()
 
