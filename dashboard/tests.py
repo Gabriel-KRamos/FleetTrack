@@ -423,7 +423,7 @@ class MotoristaE2ETest(LiveServerTestCase):
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         cls.driver = webdriver.Chrome(options=options)
-        cls.driver.implicitly_wait(10) 
+        cls.driver.implicitly_wait(10)
 
     @classmethod
     def tearDownClass(cls):
@@ -448,7 +448,7 @@ class MotoristaE2ETest(LiveServerTestCase):
     def test_fluxo_completo_adicionar_motorista(self):
         self.driver.get(self.login_url)
         self.driver.find_element(By.ID, "id_username").send_keys('selenium@teste.com')
-        self.driver.find_element(By.ID, "id_password").send_keys('password123')
+        self.driver.find_element(By.ID, "id_password").send_keys('password1impostora')
         self.driver.find_element(By.CLASS_NAME, "btn-signin").click()
 
         WebDriverWait(self.driver, 10).until(
@@ -476,8 +476,7 @@ class MotoristaE2ETest(LiveServerTestCase):
         self.driver.find_element(By.ID, "id_email").send_keys("selenium@driver.com")
         self.driver.find_element(By.ID, "id_license_number").send_keys("12345678901")
 
-        date_input = self.driver.find_element(By.ID, "id_admission_date")
-        self.driver.execute_script("arguments[0].value = '2025-01-01';", date_input)
+        self.driver.find_element(By.ID, "id_admission_date").send_keys("2025-01-01")
 
         self.driver.find_element(By.ID, "driver-submit-button").click()
 
