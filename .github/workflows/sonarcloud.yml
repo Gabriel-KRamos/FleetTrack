@@ -3,10 +3,10 @@ name: SonarCloud Analysis
 on:
   push:
     branches:
-      - main
+      - code
   pull_request:
     branches:
-      - main
+      - code
 
 jobs:
   build_and_analyze:
