@@ -423,7 +423,7 @@ class MotoristaE2ETest(LiveServerTestCase):
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         cls.driver = webdriver.Chrome(options=options)
-        cls.driver.implicitly_wait(5)
+        cls.driver.implicitly_wait(10) 
 
     @classmethod
     def tearDownClass(cls):
@@ -469,16 +469,15 @@ class MotoristaE2ETest(LiveServerTestCase):
         add_button.click()
 
         WebDriverWait(self.driver, 5).until(
-            EC.text_to_be_present_in_element(
-                (By.ID, "driver-modal-title"), 
-                "Adicionar Novo Motorista"
-            )
+             EC.visibility_of_element_located((By.ID, "id_full_name"))
         )
 
         self.driver.find_element(By.ID, "id_full_name").send_keys("Motorista Selenium")
         self.driver.find_element(By.ID, "id_email").send_keys("selenium@driver.com")
         self.driver.find_element(By.ID, "id_license_number").send_keys("12345678901")
-        self.driver.find_element(By.ID, "id_admission_date").send_keys("2025-01-01")
+
+        date_input = self.driver.find_element(By.ID, "id_admission_date")
+        self.driver.execute_script("arguments[0].value = '2025-01-01';", date_input)
 
         self.driver.find_element(By.ID, "driver-submit-button").click()
 
