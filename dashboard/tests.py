@@ -469,10 +469,11 @@ class MotoristaE2ETest(LiveServerTestCase):
         add_button.click()
 
         WebDriverWait(self.driver, 5).until(
-            EC.visibility_of_element_located((By.ID, "driver-modal-title"))
+            EC.text_to_be_present_in_element(
+                (By.ID, "driver-modal-title"), 
+                "Adicionar Novo Motorista"
+            )
         )
-        modal_title = self.driver.find_element(By.ID, "driver-modal-title").text
-        self.assertEqual(modal_title, "Adicionar Novo Motorista") 
 
         self.driver.find_element(By.ID, "id_full_name").send_keys("Motorista Selenium")
         self.driver.find_element(By.ID, "id_email").send_keys("selenium@driver.com")
