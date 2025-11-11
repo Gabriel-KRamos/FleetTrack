@@ -456,7 +456,7 @@ class MotoristaE2ETest(LiveServerTestCase):
         )
         self.assertIn(reverse('dashboard'), self.driver.current_url)
 
-        self.driver.find_element(By.LINK_TEXT, "Gerenciamento de Motoristas").click()
+        self.driver.find_element(By.CSS_SELECTOR, "a[href*='/drivers/']").click()
         
         WebDriverWait(self.driver, 10).until(
             EC.title_contains("Gerenciamento de Motoristas")
