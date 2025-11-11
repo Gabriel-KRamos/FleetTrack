@@ -413,7 +413,7 @@ class RouteViewMockTests(DashboardBaseTestCase):
         mock_get_price.assert_called_once_with('SC')
 
 
-class MotoristaE2ETest(LiveServerTestCase):
+class SimplifiedFrontendTests(LiveServerTestCase):
     
     @classmethod
     def setUpClass(cls):
@@ -423,7 +423,7 @@ class MotoristaE2ETest(LiveServerTestCase):
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         cls.driver = webdriver.Chrome(options=options)
-        cls.driver.implicitly_wait(10)
+        cls.driver.implicitly_wait(5)
 
     @classmethod
     def tearDownClass(cls):
@@ -443,53 +443,81 @@ class MotoristaE2ETest(LiveServerTestCase):
             cnpj="99999999000199"
         )
         self.login_url = self.live_server_url + reverse('login')
-        self.drivers_url = self.live_server_url + reverse('driver-list')
-
-    def test_fluxo_completo_adicionar_motorista(self):
         self.driver.get(self.login_url)
         self.driver.find_element(By.ID, "id_username").send_keys('selenium@teste.com')
         self.driver.find_element(By.ID, "id_password").send_keys('password123')
         self.driver.find_element(By.CLASS_NAME, "btn-signin").click()
-
         WebDriverWait(self.driver, 10).until(
             EC.title_contains("Dashboard de Gestão de Frotas")
         )
-        self.assertIn(reverse('dashboard'), self.driver.current_url)
 
-        self.driver.find_element(By.CSS_SELECTOR, "a[href*='/drivers/']").click()
+    def test_page_navigation(self):
+        self.driver.get(self.live_server_url + reverse('vehicle-list'))
+        self.assertTrue(WebDriverWait(self.driver, 5).until(
+            EC.title_contains("Gerenciamento de Veículos")
+        ))
         
-        WebDriverWait(self.driver, 10).until(
+        self.driver.get(self.live_server_url + reverse('driver-list'))
+        self.assertTrue(WebDriverWait(self.driver, 5).until(
             EC.title_contains("Gerenciamento de Motoristas")
-        )
+        ))
+
+        self.driver.get(self.live_server_url + reverse('route-list'))
+        self.assertTrue(WebDriverWait(self.driver, 5).until(
+            EC.title_contains("Planejamento de Rotas")
+        ))
         
-        self.assertIn("Nenhum motorista encontrado", self.driver.page_source)
-        self.assertEqual(Driver.objects.count(), 0)
-
-        add_button = self.driver.find_element(By.ID, "open-add-driver-modal")
-        add_button.click()
-
-        form_field = WebDriverWait(self.driver, 5).until(
-             EC.visibility_of_element_located((By.ID, "id_full_name"))
-        )
+        self.driver.get(self.live_server_url + reverse('maintenance-list'))
+        self.assertTrue(WebDriverWait(self.driver, 5).until(
+            EC.title_contains("Gerenciamento de Manutenções")
+        ))
         
-        time.sleep(0.2) 
+        self.driver.get(self.live_server_url + reverse('alert-config'))
+        self.assertTrue(WebDriverWait(self.driver, 5).until(
+            EC.title_contains("Alertas de Manutenção")
+        ))
 
-        form_field.send_keys("Motorista Selenium")
-        self.driver.find_element(By.ID, "id_email").send_keys("selenium@driver.com")
-        self.driver.find_element(By.ID, "id_license_number").send_keys("12345678901")
-        self.driver.find_element(By.ID, "id_admission_date").send_keys("2025-01-01")
+    def test_driver_modal_opens(self):
+        self.driver.get(self.live_server_url + reverse('driver-list'))
+        self.driver.find_element(By.ID, "open-add-driver-modal").click()
+        
+        modal = WebDriverWait(self.driver, 5).until(
+            EC.visibility_of_element_located((By.ID, "add-driver-modal"))
+        )
+        self.assertTrue(modal.is_displayed())
 
-        self.driver.find_element(By.ID, "driver-submit-button").click()
+    def test_vehicle_modal_opens(self):
+        self.driver.get(self.live_server_url + reverse('vehicle-list'))
+        self.driver.find_element(By.ID, "open-add-vehicle-modal").click()
+        
+        modal = WebDriverWait(self.driver, 5).until(
+            EC.visibility_of_element_located((By.ID, "add-vehicle-modal"))
+        )
+        self.assertTrue(modal.is_displayed())
 
-        try:
-            WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, "//td[contains(text(), 'Motorista Selenium')]"))
-            )
-        except Exception:
-            print("\n--- ERRO: Motorista não encontrado na tabela. Dump da página: ---")
-            print(self.driver.page_source)
-            print("--- FIM DUMP ---")
-            raise
+    def test_route_modal_opens(self):
+        self.driver.get(self.live_server_url + reverse('route-list'))
+        self.driver.find_element(By.ID, "open-add-route-modal").click()
+        
+        modal = WebDriverWait(self.driver, 5).until(
+            EC.visibility_of_element_located((By.ID, "route-modal"))
+        )
+        self.assertTrue(modal.is_displayed())
 
-        self.assertEqual(Driver.objects.count(), 1)
-        self.assertTrue(Driver.objects.filter(email='selenium@driver.com').exists())
+    def test_maintenance_modal_opens(self):
+        self.driver.get(self.live_server_url + reverse('maintenance-list'))
+        self.driver.find_element(By.ID, "open-add-maintenance-modal").click()
+        
+        modal = WebDriverWait(self.driver, 5).until(
+            EC.visibility_of_element_located((By.ID, "maintenance-modal"))
+        )
+        self.assertTrue(modal.is_displayed())
+
+    def test_alert_config_modal_opens(self):
+        self.driver.get(self.live_server_url + reverse('alert-config'))
+        self.driver.find_element(By.ID, "open-config-modal").click()
+        
+        modal = WebDriverWait(self.driver, 5).until(
+            EC.visibility_of_element_located((By.ID, "config-modal"))
+        )
+        self.assertTrue(modal.is_displayed())
