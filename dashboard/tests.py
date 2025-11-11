@@ -5,16 +5,19 @@ from django.utils import timezone
 from datetime import date, timedelta
 from unittest.mock import patch
 from decimal import Decimal
-from django.contrib.staticfiles.testing import LiveServerTestCase
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 from .models import Driver, Vehicle, Route, Maintenance, AlertConfiguration
 from accounts.models import UserProfile
 from .forms import DriverForm, MaintenanceForm, RouteForm
 from .views import get_vehicle_alerts
+
+from django.contrib.staticfiles.testing import LiveServerTestCase
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import time
+
 
 class DashboardBaseTestCase(TestCase):
     def setUp(self):
@@ -406,20 +409,18 @@ class RouteViewMockTests(DashboardBaseTestCase):
         mock_calculate_route.assert_called_once_with('Joinville, SC', 'Curitiba, PR')
         mock_get_price.assert_called_once_with('SC')
 
-class E2EBrowserTests(LiveServerTestCase):
+
+class MotoristaE2ETest(LiveServerTestCase):
     
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         options = webdriver.ChromeOptions()
-        options.add_argument('--no-sandbox')
-        options.add_argument('--headless')
-        options.add_argument('--disable-gpu')
-        options.add_argument('--disable-dev-shm-usage') 
-        options.add_argument("window-size=1920x1080")
-        
+        options.add_argument("--headless")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
         cls.driver = webdriver.Chrome(options=options)
-        cls.driver.implicitly_wait(10)
+        cls.driver.implicitly_wait(5)
 
     @classmethod
     def tearDownClass(cls):
@@ -427,39 +428,59 @@ class E2EBrowserTests(LiveServerTestCase):
         super().tearDownClass()
 
     def setUp(self):
-        self.user = User.objects.create_user(username='e2e_user', password='e2e_password')
-        UserProfile.objects.create(user=self.user, company_name="Empresa E2E")
+        super().setUp()
+        self.test_user = User.objects.create_user(
+            username='selenium@teste.com',
+            password='password123',
+            first_name='Usuário de Teste'
+        )
+        self.profile = UserProfile.objects.create(
+            user=self.test_user,
+            company_name="Empresa Teste E2E",
+            cnpj="99999999000199"
+        )
+        self.login_url = self.live_server_url + reverse('login')
+        self.drivers_url = self.live_server_url + reverse('driver-list')
 
-    def test_login_flow_and_open_vehicle_modal(self):
-        self.driver.get(f'{self.live_server_url}{reverse("login")}')
-        
-        self.driver.find_element(By.NAME, 'username').send_keys('e2e_user')
-        self.driver.find_element(By.NAME, 'password').send_keys('e2e_password')
-        self.driver.find_element(By.CLASS_NAME, 'btn-signin').click()
+    def test_fluxo_completo_adicionar_motorista(self):
+        self.driver.get(self.login_url)
+        self.driver.find_element(By.ID, "id_username").send_keys('selenium@teste.com')
+        self.driver.find_element(By.ID, "id_password").send_keys('password1S23')
+        self.driver.find_element(By.CLASS_NAME, "btn-signin").click()
 
-        try:
-            WebDriverWait(self.driver, 10).until(
-                EC.text_to_be_present_in_element((By.TAG_NAME, 'h1'), 'Dashboard de Gestão de Frotas')
-            )
-        except Exception as e:
-            self.driver.save_screenshot('login_failure_screenshot.png')
-            raise AssertionError(f"Falha ao fazer login: a página do dashboard não carregou. {e}")
+        WebDriverWait(self.driver, 10).until(
+            EC.title_contains("Dashboard de Gestão de Frotas")
+        )
+        self.assertIn(reverse('dashboard'), self.driver.current_url)
 
-        h1_text = self.driver.find_element(By.TAG_NAME, 'h1').text
-        self.assertEqual(h1_text, 'Dashboard de Gestão de Frotas')
-
-        self.driver.find_element(By.CSS_SELECTOR, 'a.nav-card[href*="vehicle-list"]').click()
+        self.driver.find_element(By.LINK_TEXT, "Gerenciamento de Motoristas").click()
         
         WebDriverWait(self.driver, 10).until(
-            EC.text_to_be_present_in_element((By.TAG_NAME, 'h1'), 'Gerenciamento de Veículos')
+            EC.title_contains("Gerenciamento de Motoristas")
         )
         
-        add_button = self.driver.find_element(By.ID, 'open-add-vehicle-modal')
+        self.assertContains(self.driver.page_source, "Nenhum motorista encontrado")
+        self.assertEqual(Driver.objects.count(), 0)
+
+        add_button = self.driver.find_element(By.ID, "open-add-driver-modal")
         add_button.click()
-        
-        WebDriverWait(self.driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, '#add-vehicle-modal.active'))
+
+        WebDriverWait(self.driver, 5).until(
+            EC.visibility_of_element_located((By.ID, "driver-modal-title"))
         )
-        
-        modal_title = self.driver.find_element(By.ID, 'vehicle-modal-title').text
-        self.assertEqual(modal_title, 'Adicionar Novo Veículo')
+        modal_title = self.driver.find_element(By.ID, "driver-modal-title").text
+        self.assertEqual(modal_title, "Adicionar Novo Motorista") 
+
+        self.driver.find_element(By.ID, "id_full_name").send_keys("Motorista Selenium")
+        self.driver.find_element(By.ID, "id_email").send_keys("selenium@driver.com")
+        self.driver.find_element(By.ID, "id_license_number").send_keys("12345678901")
+        self.driver.find_element(By.ID, "id_admission_date").send_keys("01/01/2025")
+
+        self.driver.find_element(By.ID, "driver-submit-button").click()
+
+        WebDriverWait(self.driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, "//td[contains(text(), 'Motorista Selenium')]"))
+        )
+
+        self.assertEqual(Driver.objects.count(), 1)
+        self.assertTrue(Driver.objects.filter(email='selenium@driver.com').exists())

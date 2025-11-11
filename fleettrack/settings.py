@@ -75,7 +75,7 @@ TESTING = 'test' in sys.argv
 if TESTING:
     DATABASES['default'] = {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'test_db.sqlite3',
+        'NAME': ':memory:',
     }
     SECRET_KEY = 'dummy-secret-key-for-testing'
 

@@ -1,52 +1,59 @@
-name: Build, Test & SonarCloud Analysis
+name: SonarCloud Analysis
 
 on:
   push:
-    branches: [ "code" ]
+    branches:
+      - main
   pull_request:
-    branches: [ "code" ]
+    branches:
+      - main
 
 jobs:
-  analysis:
+  build_and_analyze:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
         with:
-          fetch-depth: 0 
-      
+          fetch-depth: 0
+
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
           python-version: '3.12'
 
-      - name: Setup Chrome and ChromeDriver
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          
+      - name: Install Google Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+          
+      - name: Install ChromeDriver
         uses: nanasess/setup-chromedriver@v2
 
-      - name: Install Python Dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          # Assumindo que o requirements.txt está na raiz
-          pip install -r requirements.txt
-          
-      - name: Run Tests and Generate Coverage
-        env:
-          SECRET_KEY: "dummy-key-for-ci"
-          DEBUG: "False"
+          pip install -r requirements.txt 
+
+      - name: Install Node.js dependencies
+        run: npm install
+
+      - name: Run ALL Tests & Generate Coverage
         run: |
-          # Assumindo que manage.py está na raiz
-          coverage run manage.py test
-          coverage xml -o coverage-report.xml
-          
+          sudo apt-get install -y xvfb
+          xvfb-run coverage run --source='.' manage.py test dashboard accounts
+          coverage xml -o coverage.xml
+        env:
+          TESTING: "true"
+
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v2.2.0
+        uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.organization=fleettrack-1
-            -Dsonar.projectKey=FleetTrack
-            -Dsonar.sources=accounts/,dashboard/,fleettrack/
-            -Dsonar.python.coverage.reportPaths=coverage-report.xml
-            -Dsonar.python.version=3.12
