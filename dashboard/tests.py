@@ -448,7 +448,7 @@ class MotoristaE2ETest(LiveServerTestCase):
     def test_fluxo_completo_adicionar_motorista(self):
         self.driver.get(self.login_url)
         self.driver.find_element(By.ID, "id_username").send_keys('selenium@teste.com')
-        self.driver.find_element(By.ID, "id_password").send_keys('password1impostora')
+        self.driver.find_element(By.ID, "id_password").send_keys('password123')
         self.driver.find_element(By.CLASS_NAME, "btn-signin").click()
 
         WebDriverWait(self.driver, 10).until(
@@ -468,21 +468,28 @@ class MotoristaE2ETest(LiveServerTestCase):
         add_button = self.driver.find_element(By.ID, "open-add-driver-modal")
         add_button.click()
 
-        WebDriverWait(self.driver, 5).until(
+        form_field = WebDriverWait(self.driver, 5).until(
              EC.visibility_of_element_located((By.ID, "id_full_name"))
         )
+        
+        time.sleep(0.2)
 
-        self.driver.find_element(By.ID, "id_full_name").send_keys("Motorista Selenium")
+        form_field.send_keys("Motorista Selenium")
         self.driver.find_element(By.ID, "id_email").send_keys("selenium@driver.com")
         self.driver.find_element(By.ID, "id_license_number").send_keys("12345678901")
-
         self.driver.find_element(By.ID, "id_admission_date").send_keys("2025-01-01")
 
         self.driver.find_element(By.ID, "driver-submit-button").click()
 
-        WebDriverWait(self.driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//td[contains(text(), 'Motorista Selenium')]"))
-        )
+        try:
+            WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, "//td[contains(text(), 'Motorista Selenium')]"))
+            )
+        except Exception:
+            print("\n--- ERRO: Motorista não encontrado na tabela. Dump da página: ---")
+            print(self.driver.page_source)
+            print("--- FIM DUMP ---")
+            raise
 
         self.assertEqual(Driver.objects.count(), 1)
         self.assertTrue(Driver.objects.filter(email='selenium@driver.com').exists())
