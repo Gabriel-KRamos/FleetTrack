@@ -121,6 +121,7 @@ jobs:
           DB_HOST: "${{ secrets.DB_HOST_SECRET }}"
           DB_PORT: "${{ secrets.DB_PORT_SECRET }}"
           APPENGINE_URL: "\$(gcloud config get-value project).uc.r.appspot.com"
+          CLOUD_SQL_INSTANCE_NAME: "${{ secrets.GCP_CLOUD_SQL_INSTANCE }}"
 
         beta_settings:
           cloud_sql_instances: "${{ secrets.GCP_CLOUD_SQL_INSTANCE }}"
