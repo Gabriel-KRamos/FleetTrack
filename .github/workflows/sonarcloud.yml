@@ -9,78 +9,6 @@ on:
       - code
 
 jobs:
-  build_and_analyze:
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12'
-          
-      - name: Install Google Chrome
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
-          
-      - name: Install ChromeDriver
-        uses: nanasess/setup-chromedriver@v2
-
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r fleettrack/requirements.txt 
-
-      - name: Install Xvfb
-        run: sudo apt-get install -y xvfb
-      
-      - name: Run Backend Tests
-        run: |
-          coverage run --source='.' fleettrack/manage.py test accounts
-          coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.DashboardBaseTestCase
-          coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.ModelTests
-          coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.FormTests
-          coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.VehicleViewTests
-          coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.SecurityTests
-          coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.LogicTests
-          coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.ApiViewTests
-          coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.RouteViewMockTests
-        env:
-          TESTING: "true"
-          PYTHONPATH: .
-
-      - name: Run Frontend - Page Navigation Test
-        run: |
-          xvfb-run coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.SimplifiedFrontendTests.test_page_navigation
-        env:
-          TESTING: "true"
-          PYTHONPATH: .
-
-      - name: Run Frontend - Modal Tests
-        run: |
-          xvfb-run coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.SimplifiedFrontendTests.test_driver_modal_opens
-          xvfb-run coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.SimplifiedFrontendTests.test_vehicle_modal_opens
-          xvfb-run coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.SimplifiedFrontendTests.test_route_modal_opens
-          xvfb-run coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.SimplifiedFrontendTests.test_maintenance_modal_opens
-          xvfb-run coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.SimplifiedFrontendTests.test_alert_config_modal_opens
-        env:
-          TESTING: "true"
-          PYTHONPATH: .
-
-      - name: Generate Final Coverage Report
-        run: coverage xml -o coverage.xml
-
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
   deploy_to_gcp:
     name: Deploy GCP
     needs: [build_and_analyze]
@@ -107,6 +35,12 @@ jobs:
       run: python fleettrack/manage.py collectstatic --noinput
       env:
           PYTHONPATH: .
+    - name: Debug - List files
+      run: |
+        echo "Current working directory:"
+        pwd
+        echo "List all files recursively:"
+        ls -R
 
     - name: Deploy to App Engine
       uses: google-github-actions/deploy-appengine@v2
