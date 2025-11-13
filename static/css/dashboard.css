@@ -599,3 +599,7 @@ body {
     #config-modal .modal-content .config-table select { padding: 0.3rem; font-size: 0.85rem; width: 60px; min-width: 60px; }
     #config-modal .modal-content .config-table select { min-width: 80px; }
 }
+.modal-footer .btn {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.85rem;
+}
