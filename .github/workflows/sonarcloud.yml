@@ -30,21 +30,46 @@ jobs:
     - name: Install Dependencies
       run: pip install -r fleettrack/requirements.txt
       
+    - name: Create app.yaml from Secrets
+      run: |
+        cat <<EOF > fleettrack/app.yaml
+        runtime: python312
+
+        env_variables:
+          SECRET_KEY: "${{ secrets.APP_SECRET_KEY }}"
+          DEBUG: "False"
+          GOOGLE_MAPS_API_KEY: "${{ secrets.GCP_MAPS_API_KEY }}"
+          DB_NAME: "${{ secrets.DB_NAME_SECRET }}"
+          DB_USER: "${{ secrets.DB_USER_SECRET }}"
+          DB_PASSWORD: "${{ secrets.DB_PASSWORD_SECRET }}"
+          DB_HOST: "${{ secrets.DB_HOST_SECRET }}"
+          DB_PORT: "${{ secrets.DB_PORT_SECRET }}"
+          APPENGINE_URL: "\$(gcloud config get-value project).uc.r.appspot.com"
+
+        beta_settings:
+          cloud_sql_instances: "${{ secrets.GCP_CLOUD_SQL_INSTANCE }}"
+
+        entrypoint: >-
+          python manage.py migrate --no-input &&
+          gunicorn -b :\$(PORT) fleettrack.wsgi:application
+
+        handlers:
+        - url: /static/
+          static_dir: staticfiles_build/
+        - url: /.*
+          script: auto
+        EOF
+      
     - name: Collect Static Files
       run: python fleettrack/manage.py collectstatic --noinput
       env:
           PYTHONPATH: .
-    - name: Debug - List files
-      run: |
-        echo "Current working directory:"
-        pwd
-        echo "List all files recursively:"
-        ls -R
 
     - name: Deploy to App Engine
       uses: google-github-actions/deploy-appengine@v2
       with:
-        deliverables: fleettrack/app.yaml 
+        working_directory: fleettrack
+        deliverables: app.yaml 
         project_id: ${{ secrets.GCP_PROJECT_ID }}
         version: ${{ github.sha }}
         promote: true
