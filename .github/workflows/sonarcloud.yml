@@ -9,7 +9,7 @@ on:
       - code
 
 jobs:
-    deploy_to_gcp:
+  deploy_to_gcp:
     name: Deploy GCP
     runs-on: ubuntu-latest
     
@@ -37,7 +37,7 @@ jobs:
 
         automatic_scaling:
           max_instances: 2
-
+          
         env_variables:
           SECRET_KEY: "${{ secrets.APP_SECRET_KEY }}"
           DEBUG: "False"
@@ -67,7 +67,7 @@ jobs:
       run: python fleettrack/manage.py collectstatic --noinput
       env:
           PYTHONPATH: .
-    
+
     - name: Deploy to App Engine
       uses: google-github-actions/deploy-appengine@v2
       with:
