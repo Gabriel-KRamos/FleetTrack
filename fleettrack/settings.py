@@ -12,8 +12,8 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
 
 ALLOWED_HOSTS = [
-    'fleettrack-app-475400.rj.r.appspot.com', 
-    '.appspot.com', 
+    'fleettrack-app-475400.rj.r.appspot.com',
+    '.appspot.com',
     'localhost',
     '127.0.0.1'
 ]
@@ -63,13 +63,19 @@ WSGI_APPLICATION = 'fleettrack.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('DB_NAME'), 
+        'NAME': os.getenv('DB_NAME'),
         'USER': os.getenv('DB_USER'),
         'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': os.getenv('DB_HOST'),
         'PORT': os.getenv('DB_PORT'),
     }
 }
+
+if os.getenv('GAE_ENV', '').startswith('standard'):
+    instance_name = os.getenv('CLOUD_SQL_INSTANCE_NAME')
+    if instance_name:
+        DATABASES['default']['HOST'] = f"/cloudsql/{instance_name}"
+        DATABASES['default'].pop('PORT', None)
 
 TESTING = 'test' in sys.argv
 
