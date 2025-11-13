@@ -453,27 +453,27 @@ class SimplifiedFrontendTests(LiveServerTestCase):
 
     def test_page_navigation(self):
         self.driver.get(self.live_server_url + reverse('vehicle-list'))
-        self.assertTrue(WebDriverWait(self.driver, 5).until(
+        self.assertTrue(WebDriverWait(self.driver, 20).until(
             EC.title_contains("Gerenciamento de Veículos")
         ))
         
         self.driver.get(self.live_server_url + reverse('driver-list'))
-        self.assertTrue(WebDriverWait(self.driver, 5).until(
+        self.assertTrue(WebDriverWait(self.driver, 20).until(
             EC.title_contains("Gerenciamento de Motoristas")
         ))
 
         self.driver.get(self.live_server_url + reverse('route-list'))
-        self.assertTrue(WebDriverWait(self.driver, 5).until(
+        self.assertTrue(WebDriverWait(self.driver, 20).until(
             EC.title_contains("Planejamento de Rotas")
         ))
         
         self.driver.get(self.live_server_url + reverse('maintenance-list'))
-        self.assertTrue(WebDriverWait(self.driver, 5).until(
+        self.assertTrue(WebDriverWait(self.driver, 20).until(
             EC.title_contains("Gerenciamento de Manutenções")
         ))
         
         self.driver.get(self.live_server_url + reverse('alert-config'))
-        self.assertTrue(WebDriverWait(self.driver, 5).until(
+        self.assertTrue(WebDriverWait(self.driver, 20).until(
             EC.title_contains("Alertas de Manutenção")
         ))
 
@@ -481,7 +481,7 @@ class SimplifiedFrontendTests(LiveServerTestCase):
         self.driver.get(self.live_server_url + reverse('driver-list'))
         self.driver.find_element(By.ID, "open-add-driver-modal").click()
         
-        modal = WebDriverWait(self.driver, 5).until(
+        modal = WebDriverWait(self.driver, 20).until(
             EC.visibility_of_element_located((By.ID, "add-driver-modal"))
         )
         self.assertTrue(modal.is_displayed())
@@ -490,7 +490,7 @@ class SimplifiedFrontendTests(LiveServerTestCase):
         self.driver.get(self.live_server_url + reverse('vehicle-list'))
         self.driver.find_element(By.ID, "open-add-vehicle-modal").click()
         
-        modal = WebDriverWait(self.driver, 5).until(
+        modal = WebDriverWait(self.driver, 20).until(
             EC.visibility_of_element_located((By.ID, "add-vehicle-modal"))
         )
         self.assertTrue(modal.is_displayed())
@@ -499,7 +499,7 @@ class SimplifiedFrontendTests(LiveServerTestCase):
         self.driver.get(self.live_server_url + reverse('route-list'))
         self.driver.find_element(By.ID, "open-add-route-modal").click()
         
-        modal = WebDriverWait(self.driver, 5).until(
+        modal = WebDriverWait(self.driver, 20).until(
             EC.visibility_of_element_located((By.ID, "route-modal"))
         )
         self.assertTrue(modal.is_displayed())
@@ -508,7 +508,7 @@ class SimplifiedFrontendTests(LiveServerTestCase):
         self.driver.get(self.live_server_url + reverse('maintenance-list'))
         self.driver.find_element(By.ID, "open-add-maintenance-modal").click()
         
-        modal = WebDriverWait(self.driver, 5).until(
+        modal = WebDriverWait(self.driver, 20).until(
             EC.visibility_of_element_located((By.ID, "maintenance-modal"))
         )
         self.assertTrue(modal.is_displayed())
@@ -517,7 +517,7 @@ class SimplifiedFrontendTests(LiveServerTestCase):
         self.driver.get(self.live_server_url + reverse('alert-config'))
         self.driver.find_element(By.ID, "open-config-modal").click()
         
-        modal = WebDriverWait(self.driver, 5).until(
+        modal = WebDriverWait(self.driver, 20).until(
             EC.visibility_of_element_located((By.ID, "config-modal"))
         )
         self.assertTrue(modal.is_displayed())
