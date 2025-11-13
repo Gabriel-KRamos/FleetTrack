@@ -9,7 +9,7 @@ from decimal import Decimal
 from .models import Driver, Vehicle, Route, Maintenance, AlertConfiguration
 from accounts.models import UserProfile
 from .forms import DriverForm, MaintenanceForm, RouteForm
-from .views import get_vehicle_alerts
+from .services import get_vehicle_alerts
 
 from django.contrib.staticfiles.testing import LiveServerTestCase
 from selenium import webdriver
@@ -376,8 +376,8 @@ class ApiViewTests(DashboardBaseTestCase):
 
 class RouteViewMockTests(DashboardBaseTestCase):
 
-    @patch('dashboard.views.get_diesel_price')
-    @patch('dashboard.views.calculate_route_details')
+    @patch('dashboard.route_views.get_diesel_price') # 🌟 CORRIGIDO: Mock aponta para route_views
+    @patch('dashboard.route_views.calculate_route_details') # 🌟 CORRIGIDO: Mock aponta para route_views
     def test_route_create_view_with_mock(self, mock_calculate_route, mock_get_price):
         
         mock_calculate_route.return_value = {'distance': 150.0, 'toll_cost': 25.50}
