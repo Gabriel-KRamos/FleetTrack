@@ -10,6 +10,7 @@ on:
 
 jobs:
   build_and_analyze:
+    id: build_and_analyze
     runs-on: ubuntu-latest
     
     steps:
@@ -34,40 +35,43 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r fleettrack/requirements.txt 
+          pip install -r requirements.txt 
 
       - name: Install Xvfb
         run: sudo apt-get install -y xvfb
       
       - name: Run Backend Tests
         run: |
-          coverage run --source='.' fleettrack/manage.py test accounts
-          coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.DashboardBaseTestCase
-          coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.ModelTests
-          coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.FormTests
-          coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.VehicleViewTests
-          coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.SecurityTests
-          coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.LogicTests
-          coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.ApiViewTests
-          coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.RouteViewMockTests
+          coverage run --source='.' manage.py test accounts
+          coverage run --append --source='.' manage.py test dashboard.tests.DashboardBaseTestCase
+          coverage run --append --source='.' manage.py test dashboard.tests.ModelTests
+          coverage run --append --source='.' manage.py test dashboard.tests.FormTests
+          coverage run --append --source='.' manage.py test dashboard.tests.VehicleViewTests
+          coverage run --append --source='.' manage.py test dashboard.tests.SecurityTests
+          coverage run --append --source='.' manage.py test dashboard.tests.LogicTests
+          coverage run --append --source='.' manage.py test dashboard.tests.ApiViewTests
+          coverage run --append --source='.' manage.py test dashboard.tests.RouteViewMockTests
         env:
           TESTING: "true"
+          PYTHONPATH: .
 
       - name: Run Frontend - Page Navigation Test
         run: |
-          xvfb-run coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.SimplifiedFrontendTests.test_page_navigation
+          xvfb-run coverage run --append --source='.' manage.py test dashboard.tests.SimplifiedFrontendTests.test_page_navigation
         env:
           TESTING: "true"
+          PYTHONPATH: .
 
       - name: Run Frontend - Modal Tests
         run: |
-          xvfb-run coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.SimplifiedFrontendTests.test_driver_modal_opens
-          xvfb-run coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.SimplifiedFrontendTests.test_vehicle_modal_opens
-          xvfb-run coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.SimplifiedFrontendTests.test_route_modal_opens
-          xvfb-run coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.SimplifiedFrontendTests.test_maintenance_modal_opens
-          xvfb-run coverage run --append --source='.' fleettrack/manage.py test dashboard.tests.SimplifiedFrontendTests.test_alert_config_modal_opens
+          xvfb-run coverage run --append --source='.' manage.py test dashboard.tests.SimplifiedFrontendTests.test_driver_modal_opens
+          xvfb-run coverage run --append --source='.' manage.py test dashboard.tests.SimplifiedFrontendTests.test_vehicle_modal_opens
+          xvfb-run coverage run --append --source='.' manage.py test dashboard.tests.SimplifiedFrontendTests.test_route_modal_opens
+          xvfb-run coverage run --append --source='.' manage.py test dashboard.tests.SimplifiedFrontendTests.test_maintenance_modal_opens
+          xvfb-run coverage run --append --source='.' manage.py test dashboard.tests.SimplifiedFrontendTests.test_alert_config_modal_opens
         env:
           TESTING: "true"
+          PYTHONPATH: .
 
       - name: Generate Final Coverage Report
         run: coverage xml -o coverage.xml
@@ -98,15 +102,17 @@ jobs:
         python-version: '3.12'
 
     - name: Install Dependencies
-      run: pip install -r fleettrack/requirements.txt
+      run: pip install -r requirements.txt
       
     - name: Collect Static Files
-      run: python fleettrack/manage.py collectstatic --noinput
+      run: python manage.py collectstatic --noinput
+      env:
+          PYTHONPATH: .
 
     - name: Deploy to App Engine
       uses: google-github-actions/deploy-appengine@v2
       with:
-        deliverables: fleettrack/app.yaml 
+        deliverables: app.yaml 
         project_id: ${{ secrets.GCP_PROJECT_ID }}
         version: ${{ github.sha }}
         promote: true
