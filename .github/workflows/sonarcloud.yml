@@ -33,12 +33,12 @@ jobs:
 
     - name: Inject Secrets into app.yaml
       run: |
-        sed -i 's|${{ secrets.APP_SECRET_KEY }}|'"${{ secrets.APP_SECRET_KEY }}"'|g' app.yaml
-        sed -i 's|${{ secrets.GCP_MAPS_API_KEY }}|'"${{ secrets.GCP_MAPS_API_KEY }}"'|g' app.yaml
-        sed -i 's|${{ secrets.DB_NAME_SECRET }}|'"${{ secrets.DB_NAME_SECRET }}"'|g' app.yaml
-        sed -i 's|${{ secrets.DB_USER_SECRET }}|'"${{ secrets.DB_USER_SECRET }}"'|g' app.yaml
-        sed -i 's|${{ secrets.DB_PASSWORD_SECRET }}|'"${{ secrets.DB_PASSWORD_SECRET }}"'|g' app.yaml
-        sed -i 's|${{ secrets.GCP_CLOUD_SQL_INSTANCE }}|'"${{ secrets.GCP_CLOUD_SQL_INSTANCE }}"'|g' app.yaml
+        sed -i 's|${{ secrets.APP_SECRET_KEY }}|'""${{ secrets.APP_SECRET_KEY }}"'|g' app.yaml
+        sed -i 's|${{ secrets.GCP_MAPS_API_KEY }}|'""${{ secrets.GCP_MAPS_API_KEY }}"'|g' app.yaml
+        sed -i 's|${{ secrets.DB_NAME_SECRET }}|'""${{ secrets.DB_NAME_SECRET }}"'|g' app.yaml
+        sed -i 's|${{ secrets.DB_USER_SECRET }}|'""${{ secrets.DB_USER_SECRET }}"'|g' app.yaml
+        sed -i 's|${{ secrets.DB_PASSWORD_SECRET }}|'""${{ secrets.DB_PASSWORD_SECRET }}"'|g' app.yaml
+        sed -i 's|${{ secrets.GCP_CLOUD_SQL_INSTANCE }}|'""${{ secrets.GCP_CLOUD_SQL_INSTANCE }}"'|g' app.yaml
         sed -i 's|${{ secrets.GCP_PROJECT_ID }}|'"${{ secrets.GCP_PROJECT_ID }}"'|g' app.yaml
 
     - name: Deploy to App Engine
