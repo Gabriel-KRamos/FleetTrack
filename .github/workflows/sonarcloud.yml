@@ -28,15 +28,15 @@ jobs:
         python-version: '3.12'
 
     - name: Install Dependencies
-      run: pip install -r fleettrack/requirements.txt
+      run: pip install -r requirements.txt
       
     - name: Collect Static Files
-      run: python fleettrack/manage.py collectstatic --noinput
+      run: python manage.py collectstatic --noinput
 
     - name: Deploy to App Engine
       uses: google-github-actions/deploy-appengine@v2
       with:
-        deliverables: fleettrack/app.yaml 
+        deliverables: app.yaml 
         project_id: ${{ secrets.GCP_PROJECT_ID }}
         version: ${{ github.sha }}
         promote: true
