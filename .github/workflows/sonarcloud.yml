@@ -12,64 +12,33 @@ jobs:
   deploy_to_gcp:
     name: Deploy GCP
     runs-on: ubuntu-latest
-
+    
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+    - name: Checkout Code
+      uses: actions/checkout@v4
 
-      - name: Authenticate Google Cloud CLI
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+    - name: Authenticate Google Cloud CLI
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }} 
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
 
-      - name: Install Dependencies
-        run: pip install -r fleettrack/requirements.txt
+    - name: Install Dependencies
+      run: pip install -r fleettrack/requirements.txt
+      
+    - name: Collect Static Files
+      run: python fleettrack/manage.py collectstatic --noinput
 
-      - name: Create app.yaml from Secrets
-        run: |
-          cat <<EOF > fleettrack/app.yaml
-          runtime: python312
-          automatic_scaling:
-            max_instances: 2
-          env_variables:
-            SECRET_KEY: "${{ secrets.APP_SECRET_KEY }}"
-            DEBUG: "False"
-            GOOGLE_MAPS_API_KEY: "${{ secrets.GCP_MAPS_API_KEY }}"
-            DB_NAME: "${{ secrets.DB_NAME_SECRET }}"
-            DB_USER: "${{ secrets.DB_USER_SECRET }}"
-            DB_PASSWORD: "${{ secrets.DB_PASSWORD_SECRET }}"
-            DB_HOST: "${{ secrets.DB_HOST_SECRET }}"
-            DB_PORT: "${{ secrets.DB_PORT_SECRET }}"
-            APPENGINE_URL: "\$(gcloud config get-value project).uc.r.appspot.com"
-            CLOUD_SQL_INSTANCE_NAME: "${{ secrets.GCP_CLOUD_SQL_INSTANCE }}"
-          beta_settings:
-            cloud_sql_instances: "${{ secrets.GCP_CLOUD_SQL_INSTANCE }}"
-          entrypoint: >-
-            python fleettrack/manage.py migrate --no-input &&
-            gunicorn -b :\$(PORT) fleettrack.fleettrack.wsgi:application
-          handlers:
-            - url: /static/
-              static_dir: staticfiles_build/
-            - url: /.*
-              script: auto
-          EOF
-
-      - name: Collect Static Files
-        run: python fleettrack/manage.py collectstatic --noinput
-        env:
-          PYTHONPATH: .
-
-      - name: Deploy to App Engine
-        uses: google-github-actions/deploy-appengine@v2
-        with:
-          working_directory: fleettrack
-          deliverables: app.yaml
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          version: ${{ github.sha }}
-          promote: true
-          flags: --ignore-file /dev/null
+    - name: Deploy to App Engine
+      uses: google-github-actions/deploy-appengine@v2
+      with:
+        deliverables: fleettrack/app.yaml 
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        version: ${{ github.sha }}
+        promote: true
+        stop_previous_version: false
+        flags: --ignore-file /dev/null
