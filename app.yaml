@@ -8,13 +8,13 @@ env_variables:
   DB_NAME: "${{ secrets.DB_NAME_SECRET }}"
   DB_USER: "${{ secrets.DB_USER_SECRET }}"
   DB_PASSWORD: "${{ secrets.DB_PASSWORD_SECRET }}"
-  DB_HOST: "${{ secrets.DB_HOST_SECRET }}"
-  DB_PORT: "${{ secrets.DB_PORT_SECRET }}"
+  
+  CLOUD_SQL_INSTANCE_NAME: "${{ secrets.GCP_CLOUD_SQL_INSTANCE }}"
 
   APPENGINE_URL: "${{ secrets.GCP_PROJECT_ID }}.uc.r.appspot.com"
 
 beta_settings:
-  APPENGINE_URL: "${{ secrets.GCP_PROJECT_ID }}.uc.r.appspot.com"
+  cloud_sql_instances: "${{ secrets.GCP_CLOUD_SQL_INSTANCE }}"
 
 entrypoint: >-
   python manage.py migrate --no-input &&
