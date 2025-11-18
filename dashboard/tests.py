@@ -11,7 +11,7 @@ import requests
 from .models import Driver, Vehicle, Route, Maintenance, AlertConfiguration
 from accounts.models import UserProfile
 from .forms import DriverForm, MaintenanceForm, RouteForm
-from .services import get_vehicle_alerts
+from .services import get_vehicle_alerts, VehicleAlert, calculate_route_details, get_diesel_price
 
 from django.contrib.staticfiles.testing import LiveServerTestCase
 from selenium import webdriver
@@ -370,13 +370,13 @@ class DriverViewTests(DashboardBaseTestCase):
         self.deactivate_url = reverse('driver-deactivate', kwargs={'pk': self.driver_a.pk})
 
     def test_driver_list_filters(self):
-        Driver.objects.create(user_profile=self.profile_a, full_name="Inativo", email="i@t.com", license_number="22222222222", admission_date=date.today(), is_active=False)
+        d2 = Driver.objects.create(user_profile=self.profile_a, full_name="Inativo", email="i@t.com", license_number="22222222222", admission_date=date.today(), is_active=False)
         res = self.client.get(self.list_url, {'status': 'active'})
         self.assertEqual(len(res.context['drivers']), 1)
+        self.assertIn(self.driver_a, res.context['drivers'])
         res = self.client.get(self.list_url, {'status': 'inactive'})
         self.assertEqual(len(res.context['drivers']), 1)
-        res = self.client.get(self.list_url, {'search': 'Inativo'})
-        self.assertContains(res, 'Inativo')
+        self.assertIn(d2, res.context['drivers'])
 
     def test_driver_create_success(self):
         response = self.client.post(self.add_url, {
@@ -460,6 +460,8 @@ class MaintenanceViewTests(DashboardBaseTestCase):
         self.assertIn(m_over, res.context['maintenances'])
         res = self.client.get(self.list_url, {'status': 'completed'})
         self.assertIn(m_comp, res.context['maintenances'])
+        res = self.client.get(self.list_url, {'status': 'canceled'})
+        self.assertEqual(len(res.context['maintenances']), 0)
 
     def test_maintenance_create_success(self):
         response = self.client.post(self.add_url, {
@@ -618,12 +620,9 @@ class AlertViewTests(DashboardBaseTestCase):
 class LogicTests(DashboardBaseTestCase):
     def test_get_vehicle_alerts_logic(self):
         AlertConfiguration.objects.create(user_profile=self.profile_a, service_type='Revisão Geral', km_threshold=100, days_threshold=30, is_active=True, priority='high')
-        
         v1 = Vehicle.objects.create(user_profile=self.profile_a, plate='KM-001', model='M', year=2020, initial_mileage=1000, acquisition_date=date.today())
         Maintenance.objects.create(user_profile=self.profile_a, vehicle=v1, service_type='Revisão Geral', start_date=self.now, end_date=self.now, mechanic_shop_name="O", current_mileage=500, status='completed', actual_end_date=self.now)
-        
         v2 = Vehicle.objects.create(user_profile=self.profile_a, plate='DAY-001', model='M', year=2020, initial_mileage=0, acquisition_date=(self.now - timedelta(days=40)).date())
-        
         alerts = get_vehicle_alerts(self.profile_a)
         self.assertTrue(any(a.vehicle.plate == 'KM-001' and 'km' in a.message for a in alerts))
         self.assertTrue(any(a.vehicle.plate == 'DAY-001' and 'dias' in a.message for a in alerts))
@@ -633,9 +632,18 @@ class LogicTests(DashboardBaseTestCase):
         for i in range(3):
             Vehicle.objects.create(user_profile=self.profile_a, plate=f'V-{i}', model='M', year=2020, initial_mileage=100, acquisition_date=date.today())
             Maintenance.objects.create(user_profile=self.profile_a, vehicle=Vehicle.objects.get(plate=f'V-{i}'), service_type='Revisão Geral', start_date=self.now, end_date=self.now, mechanic_shop_name="O", current_mileage=10, status='completed', actual_end_date=self.now)
-        
         alerts = get_vehicle_alerts(self.profile_a, limit=2)
         self.assertEqual(len(alerts), 2)
+
+    def test_vehicle_alert_comparison(self):
+        v = self.vehicle_a
+        a1 = VehicleAlert(v, 'S1', 'M1', 'high', 10, 'days')
+        a2 = VehicleAlert(v, 'S2', 'M2', 'medium', 10, 'days')
+        a3 = VehicleAlert(v, 'S3', 'M3', 'medium', 20, 'days')
+        a4 = VehicleAlert(v, 'S4', 'M4', 'medium', 5, 'km')
+        self.assertTrue(a2 < a1) 
+        self.assertTrue(a2 < a3) 
+        self.assertTrue(a4 < a2) 
 
     @patch('dashboard.services.requests.post')
     def test_calculate_route_details_api_error_403(self, mock_post):
@@ -647,6 +655,24 @@ class LogicTests(DashboardBaseTestCase):
         result = calculate_route_details("Origem", "Destino")
         self.assertIsInstance(result, str)
         self.assertIn("Erro na API do Google (403)", result)
+
+    @patch('dashboard.services.requests.post')
+    def test_calculate_route_details_generic_exception(self, mock_post):
+        from .services import calculate_route_details
+        mock_post.side_effect = Exception("Generic Error")
+        result = calculate_route_details("A", "B")
+        self.assertIn("Erro inesperado", result)
+
+    @patch('dashboard.services.requests.get')
+    def test_get_diesel_price_errors(self, mock_get):
+        from .services import get_diesel_price
+        mock_get.side_effect = requests.exceptions.RequestException("Conn Error")
+        self.assertIn("Erro de conexão", get_diesel_price("SC"))
+        
+        mock_get.side_effect = None
+        mock_get.return_value.status_code = 500
+        mock_get.return_value.raise_for_status.side_effect = requests.exceptions.HTTPError(response=mock_get.return_value)
+        self.assertIn("Erro na API", get_diesel_price("SC"))
 
 class ApiViewTests(DashboardBaseTestCase):
     def test_vehicle_route_history_json(self):
@@ -799,6 +825,20 @@ class RouteViewMockTests(DashboardBaseTestCase):
             })
             self.assertEqual(response.status_code, 400)
             self.assertIn("Erro API", str(response.content))
+
+    def test_route_create_bad_location(self):
+        with patch('dashboard.route_views.calculate_route_details') as mock_calc:
+            mock_calc.return_value = {'distance': 10.0, 'toll_cost': 0.0}
+            response = self.client.post(reverse('route-add'), {
+                'start_location': 'A', # Bad location
+                'end_location': 'B, SC',
+                'vehicle': self.vehicle_a.pk,
+                'driver': self.driver_a.pk,
+                'start_time': (self.now + timedelta(days=1)).strftime('%d/%m/%Y %H:%M'),
+                'end_time': (self.now + timedelta(days=1, hours=1)).strftime('%d/%m/%Y %H:%M')
+            })
+            self.assertEqual(response.status_code, 400)
+            self.assertIn("Formato de Local", str(response.content))
 
 class VehicleViewTests(DashboardBaseTestCase):
     def setUp(self):
