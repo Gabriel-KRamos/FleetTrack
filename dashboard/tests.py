@@ -13,7 +13,6 @@ from accounts.models import UserProfile
 from .forms import DriverForm, MaintenanceForm, RouteForm
 from .services import get_vehicle_alerts, VehicleAlert, calculate_route_details, get_diesel_price
 
-# Uso de StaticLiveServerTestCase para garantir carregamento de estáticos (JS/CSS)
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -831,7 +830,7 @@ class RouteViewMockTests(DashboardBaseTestCase):
         with patch('dashboard.route_views.calculate_route_details') as mock_calc:
             mock_calc.return_value = {'distance': 10.0, 'toll_cost': 0.0}
             response = self.client.post(reverse('route-add'), {
-                'start_location': 'A', # Bad location
+                'start_location': 'A',
                 'end_location': 'B, SC',
                 'vehicle': self.vehicle_a.pk,
                 'driver': self.driver_a.pk,
@@ -839,7 +838,6 @@ class RouteViewMockTests(DashboardBaseTestCase):
                 'end_time': (self.now + timedelta(days=1, hours=1)).strftime('%d/%m/%Y %H:%M')
             })
             self.assertEqual(response.status_code, 400)
-            # Asserting generic bad request or specific form error string
             self.assertIn("Formato inv", str(response.content))
 
 class VehicleViewTests(DashboardBaseTestCase):
@@ -920,7 +918,6 @@ class SecurityTests(DashboardBaseTestCase):
         response = self.client.get(reverse('vehicle-list'))
         self.assertEqual(response.status_code, 302)
 
-# Usando StaticLiveServerTestCase para evitar Timeouts e servir assets
 class SimplifiedFrontendTests(StaticLiveServerTestCase):
     @classmethod
     def setUpClass(cls):
@@ -929,7 +926,6 @@ class SimplifiedFrontendTests(StaticLiveServerTestCase):
         options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
-        # Tamanho de janela para evitar elementos escondidos em responsividade
         options.add_argument("--window-size=1920,1080")
         cls.driver = webdriver.Chrome(options=options)
         cls.driver.implicitly_wait(5)
@@ -962,14 +958,11 @@ class SimplifiedFrontendTests(StaticLiveServerTestCase):
 
     def open_modal(self, button_id, modal_id):
         """Helper para abrir modais de forma robusta usando JS click"""
-        # Espera o botão ser clicável
         btn = WebDriverWait(self.driver, 20).until(
             EC.element_to_be_clickable((By.ID, button_id))
         )
-        # Usa JS para clicar, evitando problemas de overlay ou scroll
         self.driver.execute_script("arguments[0].click();", btn)
         
-        # Espera o modal aparecer
         modal = WebDriverWait(self.driver, 20).until(
             EC.visibility_of_element_located((By.ID, modal_id))
         )
@@ -1030,3 +1023,119 @@ class SimplifiedFrontendTests(StaticLiveServerTestCase):
         self.driver.get(self.live_server_url + reverse('alert-config'))
         modal = self.open_modal("open-config-modal", "config-modal")
         self.assertTrue(modal.is_displayed())
+
+
+class CoverageImprovementsTestCase(DashboardBaseTestCase):
+    """
+    Testes focados especificamente em atingir linhas não cobertas (branch coverage)
+    nas Views e Services.
+    """
+
+    def test_dashboard_vehicle_counters_logic(self):
+        Vehicle.objects.all().delete()
+        
+        v1 = Vehicle.objects.create(user_profile=self.profile_a, plate='A', model='M', year=2020, initial_mileage=0, acquisition_date=date.today())
+        
+        Vehicle.objects.create(user_profile=self.profile_a, plate='B', model='M', year=2020, initial_mileage=0, acquisition_date=date.today(), status='disabled')
+        
+        v3 = Vehicle.objects.create(user_profile=self.profile_a, plate='C', model='M', year=2020, initial_mileage=0, acquisition_date=date.today())
+        Maintenance.objects.create(user_profile=self.profile_a, vehicle=v3, service_type="S", start_date=self.now - timedelta(days=1), end_date=self.now + timedelta(days=1), mechanic_shop_name="O", current_mileage=0, status='in_progress')
+        
+        v4 = Vehicle.objects.create(user_profile=self.profile_a, plate='D', model='M', year=2020, initial_mileage=0, acquisition_date=date.today())
+        Route.objects.create(user_profile=self.profile_a, vehicle=v4, driver=self.driver_a, start_location="A", end_location="B", start_time=self.now - timedelta(hours=1), end_time=self.now + timedelta(hours=1), status='in_progress')
+
+        response = self.client.get(reverse('dashboard'))
+        overview = response.context['vehicle_overview']
+        
+        self.assertEqual(overview['total'], 4)
+        self.assertEqual(overview['available'], 1)
+        self.assertEqual(overview['unavailable'], 1)
+        self.assertEqual(overview['maintenance'], 1)
+        self.assertEqual(overview['in_use'], 1)
+
+    def test_user_profile_password_change_error(self):
+        url = reverse('user-profile')
+        response = self.client.post(url, {
+            'update_password': '1',
+            'old_password': 'wrongpassword',
+            'new_password1': 'newpass123',
+            'new_password2': 'newpass123'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['show_password_form_errors'])
+        messages = list(response.context['messages'])
+        self.assertTrue(any('Erro ao alterar a senha' in str(m) for m in messages))
+
+    def test_vehicle_list_search_branches(self):
+        
+        Vehicle.objects.create(user_profile=self.profile_a, plate='ZZZ-9999', model='Invisivel', year=2020, initial_mileage=0, acquisition_date=date.today())
+        
+        res = self.client.get(reverse('vehicle-list'), {'search': 'Modelo A'})
+        self.assertIn(self.vehicle_a, res.context['vehicles'])
+        self.assertEqual(len(res.context['vehicles']), 1)
+
+        self.vehicle_a.driver = self.driver_a
+        self.vehicle_a.save()
+        res = self.client.get(reverse('vehicle-list'), {'search': 'Motorista A'})
+        self.assertIn(self.vehicle_a, res.context['vehicles'])
+
+    def test_maintenance_create_error_loop(self):
+        response = self.client.post(reverse('maintenance-add'), {})
+        messages = list(response.context['messages'])
+        self.assertTrue(len(messages) > 0)
+        self.assertRedirects(response, reverse('maintenance-list'))
+
+    def test_maintenance_list_date_filters(self):
+        
+        m1 = Maintenance.objects.create(user_profile=self.profile_a, vehicle=self.vehicle_a, service_type="S1", start_date=self.now + timedelta(days=10), end_date=self.now + timedelta(days=11), mechanic_shop_name="O", current_mileage=0, status='scheduled')
+        m2 = Maintenance.objects.create(user_profile=self.profile_a, vehicle=self.vehicle_a, service_type="S2", start_date=self.now - timedelta(days=10), end_date=self.now - timedelta(days=9), mechanic_shop_name="O", current_mileage=0, status='scheduled')
+        
+        res = self.client.get(reverse('maintenance-list'), {'status': 'scheduled'})
+        self.assertIn(m1, res.context['maintenances'])
+        self.assertNotIn(m2, res.context['maintenances'])
+
+        res = self.client.get(reverse('maintenance-list'), {'status': 'overdue'})
+        self.assertIn(m2, res.context['maintenances'])
+
+    def test_alert_config_auto_creation(self):
+        AlertConfiguration.objects.all().delete()
+        
+        self.client.get(reverse('alert-config'))
+        
+        self.assertTrue(AlertConfiguration.objects.filter(user_profile=self.profile_a).exists())
+        self.assertEqual(AlertConfiguration.objects.filter(user_profile=self.profile_a).count(), 6)
+
+    def test_alert_config_post_error_context(self):
+        
+        AlertConfiguration.objects.create(user_profile=self.profile_a, service_type='Revisão Geral', priority='high')
+        
+        response = self.client.post(reverse('alert-config'), {'form-TOTAL_FORMS': '0'})
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Erro ao salvar', str(list(response.context['messages'])[0]))
+        self.assertIn('stats', response.context)
+
+    def test_vehicle_alerts_sorting_logic(self):
+        v = self.vehicle_a
+        
+        a1 = VehicleAlert(v, 'S1', 'Msg', priority='high', overdue_value=10)
+        a2 = VehicleAlert(v, 'S2', 'Msg', priority='medium', overdue_value=10)
+        
+        self.assertLess(a2, a1)
+
+        a3 = VehicleAlert(v, 'S3', 'Msg', priority='medium', overdue_unit='km', overdue_value=100)
+        a4 = VehicleAlert(v, 'S4', 'Msg', priority='medium', overdue_unit='days', overdue_value=10)
+        
+        self.assertFalse(a3 < a4) 
+
+    def test_get_diesel_price_fallback(self):
+        with patch('dashboard.services.requests.get') as mock_get:
+            mock_get.return_value.json.side_effect = ValueError("Invalid JSON")
+            res = get_diesel_price("SC")
+            self.assertIn("Erro ao processar", res)
+
+            mock_get.side_effect = None
+            mock_get.return_value.json.side_effect = None
+            mock_get.return_value.json.return_value = {}
+            res = get_diesel_price("SC")
+            self.assertIn("Erro ao processar", res)
