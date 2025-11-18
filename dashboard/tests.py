@@ -6,6 +6,7 @@ from datetime import date, timedelta
 from unittest.mock import patch
 from decimal import Decimal
 from django.contrib.auth.hashers import check_password
+import requests
 
 from .models import Driver, Vehicle, Route, Maintenance, AlertConfiguration
 from accounts.models import UserProfile
@@ -124,6 +125,82 @@ class ModelTests(DashboardBaseTestCase):
     def test_model_str_methods(self):
         self.assertEqual(str(self.driver_a), "Motorista A")
         self.assertEqual(str(self.vehicle_a), "Modelo A - AAA-1111")
+        
+        maint = Maintenance.objects.create(
+            user_profile=self.profile_a,
+            vehicle=self.vehicle_a,
+            service_type="Teste de STR",
+            start_date=self.now,
+            end_date=self.now + timedelta(days=1),
+            mechanic_shop_name="Oficina",
+            current_mileage=10000
+        )
+        self.assertEqual(str(maint), "Teste de STR - AAA-1111")
+        
+        route = Route.objects.create(
+            user_profile=self.profile_a,
+            start_location="Origem", end_location="Destino",
+            start_time=self.now,
+            end_time=self.now + timedelta(hours=5)
+        )
+        self.assertEqual(str(route), f"Rota de Origem para Destino ({self.now.strftime('%d/%m/%Y')})")
+        
+        alert_config = AlertConfiguration.objects.create(
+            user_profile=self.profile_a,
+            service_type="Revisão Geral"
+        )
+        self.assertEqual(str(alert_config), "Revisão Geral")
+
+    def test_vehicle_properties(self):
+        self.assertEqual(self.vehicle_a.dynamic_status_slug, 'available')
+        
+        self.assertIsNone(self.vehicle_a.current_route_driver)
+        
+        Route.objects.create(
+            user_profile=self.profile_a, vehicle=self.vehicle_a, driver=self.driver_a,
+            start_location="Origem", end_location="Destino",
+            start_time=self.now - timedelta(hours=1),
+            end_time=self.now + timedelta(hours=2),
+            status='in_progress'
+        )
+        self.vehicle_a.refresh_from_db()
+        self.assertEqual(self.vehicle_a.current_route_driver, self.driver_a)
+
+    def test_maintenance_dynamic_status(self):
+        maint = Maintenance.objects.create(
+            user_profile=self.profile_a, vehicle=self.vehicle_a, service_type="Teste",
+            start_date=self.now - timedelta(days=2),
+            end_date=self.now - timedelta(days=1),
+            mechanic_shop_name="Oficina", current_mileage=10000,
+            status='scheduled'
+        )
+        self.assertEqual(maint.dynamic_status, "Atrasada")
+        self.assertEqual(maint.dynamic_status_slug, "overdue")
+
+        maint.status = 'completed'
+        maint.save()
+        self.assertEqual(maint.dynamic_status, "Concluída")
+        self.assertEqual(maint.dynamic_status_slug, "completed")
+
+    def test_route_properties(self):
+        route = Route.objects.create(
+            user_profile=self.profile_a,
+            vehicle=self.vehicle_a,
+            driver=self.driver_a,
+            start_location="Origem", end_location="Destino",
+            start_time=self.now - timedelta(hours=2),
+            end_time=self.now + timedelta(hours=2),
+            status='scheduled'
+        )
+        self.assertEqual(route.dynamic_status, "Em Andamento")
+        self.assertEqual(route.dynamic_status_slug, "in_progress")
+        
+        self.assertEqual(route.progress_percentage, 50)
+        
+        route.estimated_distance = 100
+        route.fuel_price_per_liter = 5.0
+        
+        self.assertEqual(route.estimated_fuel_cost, 50.0)
 
 class FormTests(DashboardBaseTestCase):
 
@@ -191,6 +268,64 @@ class FormTests(DashboardBaseTestCase):
         self.assertFalse(form.is_valid())
         self.assertIn('__all__', form.errors)
         self.assertIn("está agendado para manutenção", form.errors['__all__'][0])
+
+    def test_maintenance_form_clean_other_service(self):
+        form_data = {
+            'vehicle': self.vehicle_a.pk,
+            'service_choice': 'Outro',
+            'service_type_other': '',
+            'start_date': (self.now + timedelta(days=5)).strftime('%d/%m/%Y %H:%M'),
+            'end_date': (self.now + timedelta(days=6)).strftime('%d/%m/%Y %H:%M'),
+            'mechanic_shop_name': 'Oficina X',
+            'estimated_cost': 50.00,
+            'current_mileage': self.vehicle_a.mileage
+        }
+        form = MaintenanceForm(data=form_data, user_profile=self.profile_a)
+        self.assertFalse(form.is_valid())
+        self.assertIn('service_type_other', form.errors)
+        
+        form_data['service_type_other'] = 'Serviço Customizado'
+        form = MaintenanceForm(data=form_data, user_profile=self.profile_a)
+        self.assertTrue(form.is_valid())
+        
+        maint = form.save()
+        self.assertEqual(maint.service_type, 'Serviço Customizado')
+
+    def test_route_form_invalid_location_format(self):
+        form_data = {
+            'start_location': 'Local Apenas',
+            'end_location': 'Local B, SC',
+            'vehicle': self.vehicle_a.pk,
+            'driver': self.driver_a.pk,
+            'start_time': (self.now + timedelta(days=1)).strftime('%d/%m/%Y %H:%M'),
+            'end_time': (self.now + timedelta(days=2)).strftime('%d/%m/%Y %H:%M'),
+        }
+        form = RouteForm(data=form_data, user_profile=self.profile_a)
+        self.assertFalse(form.is_valid())
+        self.assertIn('start_location', form.errors)
+        self.assertIn("Formato inválido", form.errors['start_location'][0])
+
+    def test_route_form_conflict_driver(self):
+        Route.objects.create(
+            user_profile=self.profile_a, vehicle=self.vehicle_a, driver=self.driver_a,
+            start_location="Local A, SC", end_location="Local B, SC",
+            start_time=self.now + timedelta(days=1, hours=1),
+            end_time=self.now + timedelta(days=1, hours=5),
+            status='scheduled'
+        )
+        
+        form_data = {
+            'start_location': 'Local C, SC', 'end_location': 'Local D, SC',
+            'vehicle': self.vehicle_b.pk,
+            'driver': self.driver_a.pk,
+            'start_time': (self.now + timedelta(days=1, hours=2)).strftime('%d/%m/%Y %H:%M'),
+            'end_time': (self.now + timedelta(days=1, hours=4)).strftime('%d/%m/%Y %H:%M'),
+        }
+        form = RouteForm(data=form_data, user_profile=self.profile_a)
+        
+        self.assertFalse(form.is_valid())
+        self.assertIn('__all__', form.errors)
+        self.assertIn(f"O motorista {self.driver_a.full_name} já está alocado", form.errors['__all__'][0])
 
 class VehicleViewTests(DashboardBaseTestCase):
 
@@ -343,6 +478,79 @@ class LogicTests(DashboardBaseTestCase):
         self.assertEqual(alerts[0].priority, 'high')
         self.assertIn('Vencida por 1 km', alerts[0].message)
 
+    def test_get_vehicle_alerts_by_days(self):
+        AlertConfiguration.objects.create(
+            user_profile=self.profile_a,
+            service_type='Revisão por Tempo',
+            days_threshold=90,
+            priority='medium',
+            is_active=True
+        )
+        
+        vehicle_alert = Vehicle.objects.create(
+            user_profile=self.profile_a,
+            plate='ALERT-DIAS', model='Alert Model', year=2024,
+            initial_mileage=1000, 
+            acquisition_date=date(2024, 1, 1)
+        )
+        
+        Maintenance.objects.create(
+            user_profile=self.profile_a, vehicle=vehicle_alert,
+            service_type='Revisão por Tempo',
+            status='completed',
+            current_mileage=1000,
+            start_date=self.now - timedelta(days=91),
+            end_date=self.now - timedelta(days=91),
+            actual_end_date=self.now - timedelta(days=91),
+            mechanic_shop_name="Oficina"
+        )
+
+        alerts = get_vehicle_alerts(self.profile_a)
+        
+        alert_encontrado = next((a for a in alerts if a.vehicle.plate == 'ALERT-DIAS'), None)
+        
+        self.assertIsNotNone(alert_encontrado)
+        self.assertEqual(alert_encontrado.service_type, 'Revisão por Tempo')
+        self.assertEqual(alert_encontrado.priority, 'medium')
+        self.assertIn('Vencida por 1 dias', alert_encontrado.message)
+
+    def test_get_vehicle_alerts_no_maintenance_uses_acquisition_date(self):
+        AlertConfiguration.objects.create(
+            user_profile=self.profile_a,
+            service_type='Primeira Revisão',
+            days_threshold=30,
+            is_active=True
+        )
+        
+        vehicle_new = Vehicle.objects.create(
+            user_profile=self.profile_a,
+            plate='NEW-VEH', model='New Model', year=2024,
+            initial_mileage=0, 
+            acquisition_date= (self.now - timedelta(days=31)).date()
+        )
+        
+        alerts = get_vehicle_alerts(self.profile_a)
+        alert_encontrado = next((a for a in alerts if a.vehicle.plate == 'NEW-VEH'), None)
+        
+        self.assertIsNotNone(alert_encontrado)
+        self.assertEqual(alert_encontrado.service_type, 'Primeira Revisão')
+        self.assertIn('Vencida por 1 dias', alert_encontrado.message)
+
+    @patch('dashboard.services.requests.post')
+    def test_calculate_route_details_api_error_403(self, mock_post):
+        from .services import calculate_route_details
+        
+        mock_response = mock_post.return_value
+        mock_response.status_code = 403
+        mock_response.text = 'API Key Invalid'
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(response=mock_response)
+        
+        result = calculate_route_details("Origem", "Destino")
+        
+        self.assertIsInstance(result, str)
+        self.assertIn("Erro na API do Google (403)", result)
+        self.assertIn("API Key Invalid", result)
+
 class ApiViewTests(DashboardBaseTestCase):
 
     def test_vehicle_route_history_json(self):
@@ -449,12 +657,71 @@ class RouteViewMockTests(DashboardBaseTestCase):
         
         self.assertEqual(self.vehicle_a.mileage, 10125)
 
+    @patch('dashboard.route_views.get_diesel_price')
+    @patch('dashboard.route_views.calculate_route_details')
+    def test_route_list_view_get_with_filters(self, mock_calculate_route, mock_get_price):
+        mock_calculate_route.return_value = {'distance': 100.0, 'toll_cost': 10.0}
+        mock_get_price.return_value = Decimal('5.0')
+        
+        Route.objects.create(
+            user_profile=self.profile_a, vehicle=self.vehicle_a, driver=self.driver_a,
+            start_location="Joinville, SC", end_location="Curitiba, PR",
+            start_time=self.now + timedelta(days=1),
+            end_time=self.now + timedelta(days=2),
+            status='scheduled'
+        )
+        
+        list_url = reverse('route-list')
+        
+        response_search = self.client.get(list_url, {'search': 'Joinville'})
+        self.assertEqual(response_search.status_code, 200)
+        self.assertContains(response_search, 'Joinville, SC')
+        
+        response_status = self.client.get(list_url, {'status': 'completed'})
+        self.assertEqual(response_status.status_code, 200)
+        self.assertNotContains(response_status, 'Joinville, SC')
+
+    @patch('dashboard.route_views.get_diesel_price')
+    @patch('dashboard.route_views.calculate_route_details')
+    def test_route_cancel_and_reactivate_view(self, mock_calculate_route, mock_get_price):
+        mock_calculate_route.return_value = {'distance': 100.0, 'toll_cost': 10.0}
+        mock_get_price.return_value = Decimal('5.0')
+        
+        route = Route.objects.create(
+            user_profile=self.profile_a, vehicle=self.vehicle_a, driver=self.driver_a,
+            start_location="Ponto A, SC", end_location="Ponto B, PR",
+            start_time=self.now + timedelta(days=1),
+            end_time=self.now + timedelta(days=2),
+            status='scheduled'
+        )
+        
+        cancel_url = reverse('route-cancel', kwargs={'pk': route.pk})
+        response = self.client.post(cancel_url)
+        self.assertRedirects(response, reverse('route-list'))
+        route.refresh_from_db()
+        self.assertEqual(route.status, 'canceled')
+        
+        reactivate_url = reverse('route-reactivate', kwargs={'pk': route.pk})
+        response = self.client.post(reactivate_url)
+        self.assertRedirects(response, reverse('route-list'))
+        route.refresh_from_db()
+        self.assertEqual(route.status, 'scheduled')
+
 
 class CoreViewTests(DashboardBaseTestCase):
 
     def setUp(self):
         super().setUp()
         self.profile_url = reverse('user-profile')
+
+    def test_dashboard_view_get(self):
+        response = self.client.get(reverse('dashboard'))
+        self.assertEqual(response.status_code, 200)
+        
+        self.assertIn('vehicle_overview', response.context)
+        self.assertIn('driver_overview', response.context)
+        self.assertEqual(response.context['vehicle_overview']['total'], 1)
+        self.assertEqual(response.context['driver_overview']['total'], 1)
 
     def test_user_profile_view_get(self):
         response = self.client.get(self.profile_url)
@@ -566,6 +833,19 @@ class DriverViewTests(DashboardBaseTestCase):
         self.assertEqual(len(messages), 1)
         self.assertIn('A CNH deve conter exatamente 11 dígitos', str(messages[0]))
 
+    def test_driver_update_view_post_success(self):
+        form_data = {
+            'full_name': 'Motorista A Atualizado',
+            'email': self.driver_a.email,
+            'license_number': self.driver_a.license_number,
+            'admission_date': self.driver_a.admission_date.strftime('%Y-%m-%d')
+        }
+        response = self.client.post(self.update_url, data=form_data)
+        self.assertRedirects(response, self.list_url)
+        
+        self.driver_a.refresh_from_db()
+        self.assertEqual(self.driver_a.full_name, 'Motorista A Atualizado')
+
     def test_driver_deactivate_view_post(self):
         self.assertTrue(self.driver_a.is_active)
         response = self.client.post(self.deactivate_url)
@@ -639,6 +919,26 @@ class MaintenanceViewTests(DashboardBaseTestCase):
         self.assertEqual(Maintenance.objects.filter(user_profile=self.profile_a).count(), maint_count + 1)
         new_maint = Maintenance.objects.latest('id')
         self.assertEqual(new_maint.service_type, 'Serviço Customizado')
+
+    def test_maintenance_update_view_post_success(self):
+        update_url = reverse('maintenance-update', kwargs={'pk': self.maint.pk})
+        form_data = {
+            'vehicle': self.maint.vehicle.pk,
+            'service_choice': self.maint.service_type,
+            'service_type_other': '',
+            'start_date': self.maint.start_date.strftime('%d/%m/%Y %H:%M'),
+            'end_date': self.maint.end_date.strftime('%d/%m/%Y %H:%M'),
+            'mechanic_shop_name': 'Oficina Atualizada',
+            'estimated_cost': 150.00,
+            'current_mileage': self.maint.current_mileage
+        }
+        
+        response = self.client.post(update_url, data=form_data)
+        self.assertRedirects(response, self.list_url)
+        
+        self.maint.refresh_from_db()
+        self.assertEqual(self.maint.mechanic_shop_name, 'Oficina Atualizada')
+        self.assertEqual(self.maint.estimated_cost, Decimal('150.00'))
 
     def test_maintenance_complete_view_post(self):
         self.assertEqual(self.maint.status, 'scheduled')
