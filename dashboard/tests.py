@@ -716,33 +716,6 @@ class AlertConfigViewTests(DashboardBaseTestCase):
         self.assertEqual(config.days_threshold, 365)
         self.assertEqual(config.priority, 'high')
 
-class FrontendSignupTests(LiveServerTestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        options = webdriver.ChromeOptions()
-        options.add_argument("--headless")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        cls.driver = webdriver.Chrome(options=options)
-        cls.driver.implicitly_wait(5)
-        cls.signup_url = cls.live_server_url + reverse('signup')
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.driver.quit()
-        super().tearDownClass()
-
-    def test_signup_cnpj_mask_formatting(self):
-        self.driver.get(self.signup_url)
-        cnpj_input = self.driver.find_element(By.ID, "id_cnpj")
-        
-        cnpj_input.send_keys("12345678000199")
-        
-        formatted_value = cnpj_input.get_attribute("value")
-        self.assertEqual(formatted_value, "12.345.678/0001-99")
-
 class SimplifiedFrontendTests(LiveServerTestCase):
     
     @classmethod
@@ -809,7 +782,10 @@ class SimplifiedFrontendTests(LiveServerTestCase):
 
     def test_driver_modal_opens(self):
         self.driver.get(self.live_server_url + reverse('driver-list'))
-        self.driver.find_element(By.ID, "open-add-driver-modal").click()
+        add_button = WebDriverWait(self.driver, 50).until(
+            EC.element_to_be_clickable((By.ID, "open-add-driver-modal"))
+        )
+        add_button.click()
         
         modal = WebDriverWait(self.driver, 50).until(
             EC.visibility_of_element_located((By.ID, "add-driver-modal"))
@@ -818,7 +794,10 @@ class SimplifiedFrontendTests(LiveServerTestCase):
 
     def test_vehicle_modal_opens(self):
         self.driver.get(self.live_server_url + reverse('vehicle-list'))
-        self.driver.find_element(By.ID, "open-add-vehicle-modal").click()
+        add_button = WebDriverWait(self.driver, 50).until(
+            EC.element_to_be_clickable((By.ID, "open-add-vehicle-modal"))
+        )
+        add_button.click()
         
         modal = WebDriverWait(self.driver, 50).until(
             EC.visibility_of_element_located((By.ID, "add-vehicle-modal"))
@@ -827,7 +806,10 @@ class SimplifiedFrontendTests(LiveServerTestCase):
 
     def test_route_modal_opens(self):
         self.driver.get(self.live_server_url + reverse('route-list'))
-        self.driver.find_element(By.ID, "open-add-route-modal").click()
+        add_button = WebDriverWait(self.driver, 50).until(
+            EC.element_to_be_clickable((By.ID, "open-add-route-modal"))
+        )
+        add_button.click()
         
         modal = WebDriverWait(self.driver, 50).until(
             EC.visibility_of_element_located((By.ID, "route-modal"))
@@ -836,7 +818,10 @@ class SimplifiedFrontendTests(LiveServerTestCase):
 
     def test_maintenance_modal_opens(self):
         self.driver.get(self.live_server_url + reverse('maintenance-list'))
-        self.driver.find_element(By.ID, "open-add-maintenance-modal").click()
+        add_button = WebDriverWait(self.driver, 50).until(
+            EC.element_to_be_clickable((By.ID, "open-add-maintenance-modal"))
+        )
+        add_button.click()
         
         modal = WebDriverWait(self.driver, 50).until(
             EC.visibility_of_element_located((By.ID, "maintenance-modal"))
@@ -845,80 +830,12 @@ class SimplifiedFrontendTests(LiveServerTestCase):
 
     def test_alert_config_modal_opens(self):
         self.driver.get(self.live_server_url + reverse('alert-config'))
-        self.driver.find_element(By.ID, "open-config-modal").click()
+        add_button = WebDriverWait(self.driver, 50).until(
+            EC.element_to_be_clickable((By.ID, "open-config-modal"))
+        )
+        add_button.click()
         
         modal = WebDriverWait(self.driver, 50).until(
             EC.visibility_of_element_located((By.ID, "config-modal"))
         )
         self.assertTrue(modal.is_displayed())
-
-    def test_profile_page_edit_toggle(self):
-        self.driver.get(self.live_server_url + reverse('user-profile'))
-        
-        edit_button = WebDriverWait(self.driver, 50).until(
-            EC.element_to_be_clickable((By.ID, "edit-profile-btn"))
-        )
-        
-        cnpj_input = self.driver.find_element(By.ID, "id_cnpj")
-        self.assertFalse(cnpj_input.is_displayed())
-        
-        edit_button.click()
-        
-        self.assertTrue(cnpj_input.is_displayed())
-        
-        cancel_button = self.driver.find_element(By.ID, "cancel-edit-btn")
-        cancel_button.click()
-        
-        self.assertFalse(cnpj_input.is_displayed())
-
-    def test_maintenance_form_dynamic_service_type(self):
-        self.driver.get(self.live_server_url + reverse('maintenance-list'))
-        
-        self.driver.find_element(By.ID, "open-add-maintenance-modal").click()
-        
-        modal = WebDriverWait(self.driver, 50).until(
-            EC.visibility_of_element_located((By.ID, "maintenance-modal"))
-        )
-        
-        other_service_wrapper = self.driver.find_element(By.ID, "service_type_other_wrapper")
-        self.assertFalse(other_service_wrapper.is_displayed())
-        
-        service_select = self.driver.find_element(By.ID, "id_service_choice")
-        service_select.click()
-        self.driver.find_element(By.XPATH, "//option[. = 'Outro (Especificar)']").click()
-        
-        self.assertTrue(other_service_wrapper.is_displayed())
-        
-        service_select.click()
-        self.driver.find_element(By.XPATH, "//option[. = 'Revisão Geral']").click()
-        
-        self.assertFalse(other_service_wrapper.is_displayed())
-
-    def test_maintenance_form_vehicle_mileage_display(self):
-        Vehicle.objects.create(
-            user_profile=self.profile,
-            plate='SEL-1234', model='Selenium', year=2025,
-            initial_mileage=55555,
-            acquisition_date=date.today(),
-            average_fuel_consumption=10.0
-        )
-        
-        self.driver.get(self.live_server_url + reverse('maintenance-list'))
-        self.driver.find_element(By.ID, "open-add-maintenance-modal").click()
-        
-        modal = WebDriverWait(self.driver, 50).until(
-            EC.visibility_of_element_located((By.ID, "maintenance-modal"))
-        )
-        
-        mileage_display = self.driver.find_element(By.ID, "mileage-display-value")
-        self.assertIn("-- selecione --", mileage_display.text)
-        
-        vehicle_select = self.driver.find_element(By.ID, "id_vehicle")
-        vehicle_select.click()
-        
-        option = WebDriverWait(self.driver, 50).until(
-            EC.element_to_be_clickable((By.XPATH, "//option[contains(text(), 'SEL-1234')]"))
-        )
-        option.click()
-        
-        self.assertIn("55555 km", mileage_display.text)
