@@ -5,6 +5,7 @@ from django.utils import timezone
 from datetime import date, timedelta
 from unittest.mock import patch
 from decimal import Decimal
+from django.contrib.auth.hashers import check_password
 
 from .models import Driver, Vehicle, Route, Maintenance, AlertConfiguration
 from accounts.models import UserProfile
@@ -412,6 +413,335 @@ class RouteViewMockTests(DashboardBaseTestCase):
         mock_calculate_route.assert_called_once_with('Joinville, SC', 'Curitiba, PR')
         mock_get_price.assert_called_once_with('SC')
 
+    @patch('dashboard.route_views.get_diesel_price')
+    @patch('dashboard.route_views.calculate_route_details')
+    def test_route_complete_view_updates_mileage(self, mock_calculate_route, mock_get_price):
+        mock_calculate_route.return_value = {'distance': 100.0, 'toll_cost': 10.0}
+        mock_get_price.return_value = Decimal('5.0')
+        
+        route = Route.objects.create(
+            user_profile=self.profile_a,
+            vehicle=self.vehicle_a, driver=self.driver_a,
+            start_location="Ponto A", end_location="Ponto B",
+            start_time=self.now - timedelta(days=2),
+            end_time=self.now - timedelta(days=1),
+            status='in_progress',
+            estimated_distance=100.0
+        )
+        
+        complete_url = reverse('route-complete', kwargs={'pk': route.pk})
+        
+        mileage_before = self.vehicle_a.mileage 
+        self.assertEqual(mileage_before, 10000)
+        
+        form_data = {
+            'actual_distance': 125.50 
+        }
+        
+        response = self.client.post(complete_url, data=form_data)
+        self.assertRedirects(response, reverse('route-list'))
+        
+        route.refresh_from_db()
+        self.vehicle_a.refresh_from_db()
+        
+        self.assertEqual(route.status, 'completed')
+        self.assertEqual(route.actual_distance, Decimal('125.50'))
+        
+        self.assertEqual(self.vehicle_a.mileage, 10125)
+
+class CoreViewTests(DashboardBaseTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.profile_url = reverse('user-profile')
+
+    def test_user_profile_view_get(self):
+        response = self.client.get(self.profile_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'dashboard/user_profile.html')
+        self.assertContains(response, self.profile_a.company_name)
+        self.assertContains(response, self.user_a.first_name)
+
+    def test_user_profile_update_profile_post_success(self):
+        form_data = {
+            'first_name': 'Usuario A Atualizado',
+            'username': self.user_a.username,
+            'company_name': 'Empresa A Atualizada',
+            'cnpj': '11.111.111/1111-11',
+            'update_profile': '1'
+        }
+        
+        response = self.client.post(self.profile_url, data=form_data)
+        
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, self.profile_url)
+
+        self.user_a.refresh_from_db()
+        self.profile_a.refresh_from_db()
+
+        self.assertEqual(self.user_a.first_name, 'Usuario A Atualizado')
+        self.assertEqual(self.profile_a.company_name, 'Empresa A Atualizada')
+        self.assertEqual(self.profile_a.cnpj, '11111111111111') 
+
+    def test_user_profile_update_password_post_success(self):
+        old_password = 'password123'
+        new_password = 'new_password_abc'
+        
+        form_data = {
+            'old_password': old_password,
+            'new_password1': new_password,
+            'new_password2': new_password,
+            'update_password': '1'
+        }
+        
+        response = self.client.post(self.profile_url, data=form_data)
+        self.assertRedirects(response, self.profile_url)
+        
+        self.user_a.refresh_from_db()
+        
+        self.assertTrue(check_password(new_password, self.user_a.password))
+        self.assertFalse(check_password(old_password, self.user_a.password))
+
+    def test_user_profile_update_password_post_fail_mismatch(self):
+        form_data = {
+            'old_password': 'password123',
+            'new_password1': 'new_password_abc',
+            'new_password2': 'senha_errada',
+            'update_password': '1'
+        }
+        
+        response = self.client.post(self.profile_url, data=form_data)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Erro ao alterar a senha')
+        self.assertTrue(response.context['show_password_form_errors'])
+
+class DriverViewTests(DashboardBaseTestCase):
+    
+    def setUp(self):
+        super().setUp()
+        self.list_url = reverse('driver-list')
+        self.add_url = reverse('driver-add')
+        self.update_url = reverse('driver-update', kwargs={'pk': self.driver_a.pk})
+        self.deactivate_url = reverse('driver-deactivate', kwargs={'pk': self.driver_a.pk})
+        self.history_url = reverse('driver-route-history', kwargs={'pk': self.driver_a.pk})
+
+    def test_driver_list_view_get_and_filters(self):
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Motorista A')
+        
+        response_inactive = self.client.get(self.list_url, {'status': 'inactive'})
+        self.assertNotContains(response_inactive, 'Motorista A')
+        
+        response_search = self.client.get(self.list_url, {'search': '111111'})
+        self.assertContains(response_search, 'Motorista A')
+
+    def test_driver_create_view_post_success(self):
+        driver_count = Driver.objects.filter(user_profile=self.profile_a).count()
+        form_data = {
+            'full_name': 'Motorista B',
+            'email': 'driver_b@teste.com',
+            'license_number': '22222222222',
+            'admission_date': '2025-01-01'
+        }
+        response = self.client.post(self.add_url, data=form_data)
+        self.assertRedirects(response, self.list_url)
+        self.assertEqual(Driver.objects.filter(user_profile=self.profile_a).count(), driver_count + 1)
+
+    def test_driver_create_view_post_fail_invalid_cnh(self):
+        driver_count = Driver.objects.filter(user_profile=self.profile_a).count()
+        form_data = {
+            'full_name': 'Motorista C',
+            'email': 'driver_c@teste.com',
+            'license_number': '123',
+            'admission_date': '2025-01-01'
+        }
+        response = self.client.post(self.add_url, data=form_data)
+        self.assertRedirects(response, self.list_url)
+        
+        self.assertEqual(Driver.objects.filter(user_profile=self.profile_a).count(), driver_count) 
+        
+        messages = list(response.context['messages'])
+        self.assertEqual(len(messages), 1)
+        self.assertIn('A CNH deve conter exatamente 11 dígitos', str(messages[0]))
+
+    def test_driver_deactivate_view_post(self):
+        self.assertTrue(self.driver_a.is_active)
+        response = self.client.post(self.deactivate_url)
+        self.assertRedirects(response, self.list_url)
+        
+        self.driver_a.refresh_from_db()
+        self.assertFalse(self.driver_a.is_active)
+        self.assertEqual(self.driver_a.demission_date, date.today())
+    
+    def test_driver_route_history_json_view(self):
+        Route.objects.create(
+            user_profile=self.profile_a,
+            vehicle=self.vehicle_a, driver=self.driver_a,
+            start_location="Ponto A", end_location="Ponto B",
+            start_time=self.now - timedelta(days=2),
+            end_time=self.now - timedelta(days=1),
+            status='completed', actual_distance=100
+        )
+        
+        response = self.client.get(self.history_url)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data['history']), 1)
+        self.assertEqual(data['stats']['total_routes'], 1)
+        self.assertEqual(data['history'][0]['vehicle_plate'], self.vehicle_a.plate)
+
+class MaintenanceViewTests(DashboardBaseTestCase):
+    
+    def setUp(self):
+        super().setUp()
+        self.list_url = reverse('maintenance-list')
+        self.add_url = reverse('maintenance-add')
+        self.maint = Maintenance.objects.create(
+            user_profile=self.profile_a,
+            vehicle=self.vehicle_a,
+            service_type='Troca de Teste',
+            start_date=self.now + timedelta(days=1),
+            end_date=self.now + timedelta(days=2),
+            mechanic_shop_name='Oficina Teste',
+            current_mileage=self.vehicle_a.mileage,
+            estimated_cost=100.00,
+            status='scheduled'
+        )
+        self.complete_url = reverse('maintenance-complete', kwargs={'pk': self.maint.pk})
+        self.cancel_url = reverse('maintenance-cancel', kwargs={'pk': self.maint.pk})
+
+    def test_maintenance_list_view_get_and_filters(self):
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Troca de Teste')
+        
+        response_completed = self.client.get(self.list_url, {'status': 'completed'})
+        self.assertNotContains(response_completed, 'Troca de Teste')
+
+    def test_maintenance_create_view_post_service_choice_outro(self):
+        maint_count = Maintenance.objects.filter(user_profile=self.profile_a).count()
+        form_data = {
+            'vehicle': self.vehicle_a.pk,
+            'service_choice': 'Outro',
+            'service_type_other': 'Serviço Customizado',
+            'start_date': (self.now + timedelta(days=5)).strftime('%d/%m/%Y %H:%M'),
+            'end_date': (self.now + timedelta(days=6)).strftime('%d/%m/%Y %H:%M'),
+            'mechanic_shop_name': 'Oficina X',
+            'estimated_cost': 50.00,
+            'current_mileage': self.vehicle_a.mileage
+        }
+        
+        response = self.client.post(self.add_url, data=form_data)
+        self.assertRedirects(response, self.list_url)
+        
+        self.assertEqual(Maintenance.objects.filter(user_profile=self.profile_a).count(), maint_count + 1)
+        new_maint = Maintenance.objects.latest('id')
+        self.assertEqual(new_maint.service_type, 'Serviço Customizado')
+
+    def test_maintenance_complete_view_post(self):
+        self.assertEqual(self.maint.status, 'scheduled')
+        
+        form_data = {
+            'actual_cost': 110.00,
+            'actual_end_date': (self.now + timedelta(days=2)).strftime('%d/%m/%Y %H:%M')
+        }
+        
+        response = self.client.post(self.complete_url, data=form_data)
+        self.assertRedirects(response, self.list_url)
+        
+        self.maint.refresh_from_db()
+        self.assertEqual(self.maint.status, 'completed')
+        self.assertEqual(self.maint.actual_cost, Decimal('110.00'))
+        
+        messages = list(response.context['messages'])
+        self.assertTrue(any('O custo final' in str(m) for m in messages))
+
+    def test_maintenance_cancel_view_post(self):
+        self.assertEqual(self.maint.status, 'scheduled')
+        response = self.client.post(self.cancel_url)
+        self.assertRedirects(response, self.list_url)
+        
+        self.maint.refresh_from_db()
+        self.assertEqual(self.maint.status, 'canceled')
+
+class AlertConfigViewTests(DashboardBaseTestCase):
+            
+    def setUp(self):
+        super().setUp()
+        self.config_url = reverse('alert-config')
+        self.client.get(self.config_url)
+    
+    def test_alert_config_post_update_settings(self):
+        config = AlertConfiguration.objects.get(
+            user_profile=self.profile_a, 
+            service_type='Revisão Geral'
+        )
+        self.assertIsNone(config.km_threshold) 
+
+        total_forms = AlertConfiguration.objects.filter(user_profile=self.profile_a).count()
+        
+        formset_data = {
+            'form-TOTAL_FORMS': str(total_forms),
+            'form-INITIAL_FORMS': str(total_forms),
+            'form-MIN_NUM_FORMS': '0',
+            'form-MAX_NUM_FORMS': '1000',
+        }
+        
+        forms_qs = AlertConfiguration.objects.filter(user_profile=self.profile_a).order_by('service_type')
+        
+        for i, form_instance in enumerate(forms_qs):
+            prefix = f'form-{i}'
+            formset_data[f'{prefix}-id'] = form_instance.id
+            formset_data[f'{prefix}-user_profile'] = form_instance.user_profile.id
+            formset_data[f'{prefix}-service_type'] = form_instance.service_type
+            
+            if form_instance.service_type == 'Revisão Geral':
+                formset_data[f'{prefix}-km_threshold'] = '10000'
+                formset_data[f'{prefix}-days_threshold'] = '365'
+                formset_data[f'{prefix}-priority'] = 'high'
+                formset_data[f'{prefix}-is_active'] = 'on'
+            else:
+                formset_data[f'{prefix}-km_threshold'] = form_instance.km_threshold or ''
+                formset_data[f'{prefix}-days_threshold'] = form_instance.days_threshold or ''
+                formset_data[f'{prefix}-priority'] = form_instance.priority
+                if form_instance.is_active:
+                     formset_data[f'{prefix}-is_active'] = 'on'
+        
+        response = self.client.post(self.config_url, data=formset_data)
+        self.assertRedirects(response, self.config_url)
+        
+        config.refresh_from_db()
+        self.assertEqual(config.km_threshold, 10000)
+        self.assertEqual(config.days_threshold, 365)
+        self.assertEqual(config.priority, 'high')
+
+class FrontendSignupTests(LiveServerTestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        options = webdriver.ChromeOptions()
+        options.add_argument("--headless")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        cls.driver = webdriver.Chrome(options=options)
+        cls.driver.implicitly_wait(5)
+        cls.signup_url = cls.live_server_url + reverse('signup')
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.driver.quit()
+        super().tearDownClass()
+
+    def test_signup_cnpj_mask_formatting(self):
+        self.driver.get(self.signup_url)
+        cnpj_input = self.driver.find_element(By.ID, "id_cnpj")
+        
+        cnpj_input.send_keys("12345678000199")
+        
+        formatted_value = cnpj_input.get_attribute("value")
+        self.assertEqual(formatted_value, "12.345.678/0001-99")
 
 class SimplifiedFrontendTests(LiveServerTestCase):
     
@@ -521,3 +851,74 @@ class SimplifiedFrontendTests(LiveServerTestCase):
             EC.visibility_of_element_located((By.ID, "config-modal"))
         )
         self.assertTrue(modal.is_displayed())
+
+    def test_profile_page_edit_toggle(self):
+        self.driver.get(self.live_server_url + reverse('user-profile'))
+        
+        edit_button = WebDriverWait(self.driver, 50).until(
+            EC.element_to_be_clickable((By.ID, "edit-profile-btn"))
+        )
+        
+        cnpj_input = self.driver.find_element(By.ID, "id_cnpj")
+        self.assertFalse(cnpj_input.is_displayed())
+        
+        edit_button.click()
+        
+        self.assertTrue(cnpj_input.is_displayed())
+        
+        cancel_button = self.driver.find_element(By.ID, "cancel-edit-btn")
+        cancel_button.click()
+        
+        self.assertFalse(cnpj_input.is_displayed())
+
+    def test_maintenance_form_dynamic_service_type(self):
+        self.driver.get(self.live_server_url + reverse('maintenance-list'))
+        
+        self.driver.find_element(By.ID, "open-add-maintenance-modal").click()
+        
+        modal = WebDriverWait(self.driver, 50).until(
+            EC.visibility_of_element_located((By.ID, "maintenance-modal"))
+        )
+        
+        other_service_wrapper = self.driver.find_element(By.ID, "service_type_other_wrapper")
+        self.assertFalse(other_service_wrapper.is_displayed())
+        
+        service_select = self.driver.find_element(By.ID, "id_service_choice")
+        service_select.click()
+        self.driver.find_element(By.XPATH, "//option[. = 'Outro (Especificar)']").click()
+        
+        self.assertTrue(other_service_wrapper.is_displayed())
+        
+        service_select.click()
+        self.driver.find_element(By.XPATH, "//option[. = 'Revisão Geral']").click()
+        
+        self.assertFalse(other_service_wrapper.is_displayed())
+
+    def test_maintenance_form_vehicle_mileage_display(self):
+        Vehicle.objects.create(
+            user_profile=self.profile,
+            plate='SEL-1234', model='Selenium', year=2025,
+            initial_mileage=55555,
+            acquisition_date=date.today(),
+            average_fuel_consumption=10.0
+        )
+        
+        self.driver.get(self.live_server_url + reverse('maintenance-list'))
+        self.driver.find_element(By.ID, "open-add-maintenance-modal").click()
+        
+        modal = WebDriverWait(self.driver, 50).until(
+            EC.visibility_of_element_located((By.ID, "maintenance-modal"))
+        )
+        
+        mileage_display = self.driver.find_element(By.ID, "mileage-display-value")
+        self.assertIn("-- selecione --", mileage_display.text)
+        
+        vehicle_select = self.driver.find_element(By.ID, "id_vehicle")
+        vehicle_select.click()
+        
+        option = WebDriverWait(self.driver, 50).until(
+            EC.element_to_be_clickable((By.XPATH, "//option[contains(text(), 'SEL-1234')]"))
+        )
+        option.click()
+        
+        self.assertIn("55555 km", mileage_display.text)
