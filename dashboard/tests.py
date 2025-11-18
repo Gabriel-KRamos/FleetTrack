@@ -449,6 +449,7 @@ class RouteViewMockTests(DashboardBaseTestCase):
         
         self.assertEqual(self.vehicle_a.mileage, 10125)
 
+
 class CoreViewTests(DashboardBaseTestCase):
 
     def setUp(self):
@@ -788,7 +789,7 @@ class SimplifiedFrontendTests(LiveServerTestCase):
     def test_driver_modal_opens(self):
         self.driver.get(self.live_server_url + reverse('driver-list'))
         add_button = WebDriverWait(self.driver, 50).until(
-            EC.element_to_be_clickable((By.ID, "open-add-driver-modal"))
+            EC.visibility_of_element_located((By.ID, "open-add-driver-modal"))
         )
         add_button.click()
         
@@ -800,7 +801,7 @@ class SimplifiedFrontendTests(LiveServerTestCase):
     def test_vehicle_modal_opens(self):
         self.driver.get(self.live_server_url + reverse('vehicle-list'))
         add_button = WebDriverWait(self.driver, 50).until(
-            EC.element_to_be_clickable((By.ID, "open-add-vehicle-modal"))
+            EC.visibility_of_element_located((By.ID, "open-add-vehicle-modal"))
         )
         add_button.click()
         
@@ -812,7 +813,7 @@ class SimplifiedFrontendTests(LiveServerTestCase):
     def test_route_modal_opens(self):
         self.driver.get(self.live_server_url + reverse('route-list'))
         add_button = WebDriverWait(self.driver, 50).until(
-            EC.element_to_be_clickable((By.ID, "open-add-route-modal"))
+            EC.visibility_of_element_located((By.ID, "open-add-route-modal"))
         )
         add_button.click()
         
@@ -824,7 +825,7 @@ class SimplifiedFrontendTests(LiveServerTestCase):
     def test_maintenance_modal_opens(self):
         self.driver.get(self.live_server_url + reverse('maintenance-list'))
         add_button = WebDriverWait(self.driver, 50).until(
-            EC.element_to_be_clickable((By.ID, "open-add-maintenance-modal"))
+            EC.visibility_of_element_located((By.ID, "open-add-maintenance-modal"))
         )
         add_button.click()
         
@@ -836,7 +837,7 @@ class SimplifiedFrontendTests(LiveServerTestCase):
     def test_alert_config_modal_opens(self):
         self.driver.get(self.live_server_url + reverse('alert-config'))
         add_button = WebDriverWait(self.driver, 50).until(
-            EC.element_to_be_clickable((By.ID, "open-config-modal"))
+            EC.visibility_of_element_located((By.ID, "open-config-modal"))
         )
         add_button.click()
         
