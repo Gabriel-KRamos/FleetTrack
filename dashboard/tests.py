@@ -830,7 +830,7 @@ class RouteViewMockTests(DashboardBaseTestCase):
         with patch('dashboard.route_views.calculate_route_details') as mock_calc:
             mock_calc.return_value = {'distance': 10.0, 'toll_cost': 0.0}
             response = self.client.post(reverse('route-add'), {
-                'start_location': 'A', # Bad location
+                'start_location': 'A',
                 'end_location': 'B, SC',
                 'vehicle': self.vehicle_a.pk,
                 'driver': self.driver_a.pk,
@@ -838,7 +838,6 @@ class RouteViewMockTests(DashboardBaseTestCase):
                 'end_time': (self.now + timedelta(days=1, hours=1)).strftime('%d/%m/%Y %H:%M')
             })
             self.assertEqual(response.status_code, 400)
-            # Asserting generic bad request or specific form error string
             self.assertIn("Formato inv", str(response.content))
 
 class VehicleViewTests(DashboardBaseTestCase):
@@ -1047,7 +1046,7 @@ class CoverageImprovementsTestCase(DashboardBaseTestCase):
         self.assertEqual(overview['maintenance'], 1)
         self.assertEqual(overview['in_use'], 1)
 
-    def test_user_profile_password_change_error(self):
+    def test_user_profile_post_password_change_error(self):
         url = reverse('user-profile')
         response = self.client.post(url, {
             'update_password': '1',
@@ -1060,6 +1059,28 @@ class CoverageImprovementsTestCase(DashboardBaseTestCase):
         messages = list(response.context['messages'])
         self.assertTrue(any('Erro ao alterar a senha' in str(m) for m in messages))
 
+    def test_user_profile_view_get_with_no_profile(self):
+        self.profile_a.delete()
+        self.user_a.refresh_from_db()
+        
+        response = self.client.get(reverse('user-profile'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(UserProfile.objects.filter(user=self.user_a).exists())
+    
+    def test_user_profile_view_post_with_no_profile(self):
+        self.profile_a.delete()
+        self.user_a.refresh_from_db()
+        
+        response = self.client.post(reverse('user-profile'), {
+            'update_profile': '1', 
+            'first_name': 'NewName', 
+            'username': 'user_a@teste.com',
+            'company_name': 'New Comp',
+            'cnpj': '11111111111111'
+        })
+        self.assertRedirects(response, reverse('user-profile'))
+        self.assertTrue(UserProfile.objects.filter(user=self.user_a).exists())
+    
     def test_vehicle_list_search_branches(self):
         Vehicle.objects.create(user_profile=self.profile_a, plate='ZZZ-9999', model='Invisivel', year=2020, initial_mileage=0, acquisition_date=date.today())
         
