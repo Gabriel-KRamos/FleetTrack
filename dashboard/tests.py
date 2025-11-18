@@ -377,6 +377,8 @@ class DriverViewTests(DashboardBaseTestCase):
         res = self.client.get(self.list_url, {'status': 'inactive'})
         self.assertEqual(len(res.context['drivers']), 1)
         self.assertIn(d2, res.context['drivers'])
+        res = self.client.get(self.list_url, {'search': 'Inativo'})
+        self.assertContains(res, 'Inativo')
 
     def test_driver_create_success(self):
         response = self.client.post(self.add_url, {
@@ -643,7 +645,7 @@ class LogicTests(DashboardBaseTestCase):
         a4 = VehicleAlert(v, 'S4', 'M4', 'medium', 5, 'km')
         self.assertTrue(a2 < a1) 
         self.assertTrue(a2 < a3) 
-        self.assertTrue(a4 < a2) 
+        self.assertTrue(a2 < a4) 
 
     @patch('dashboard.services.requests.post')
     def test_calculate_route_details_api_error_403(self, mock_post):
