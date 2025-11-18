@@ -308,6 +308,7 @@ class CoreViewTests(DashboardBaseTestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertTrue(any('Erro ao atualizar' in str(m) for m in response.context['messages']))
+        self.assertTrue(response.context['user_form'].errors or response.context['company_form'].errors)
 
     def test_password_change_success(self):
         response = self.client.post(self.profile_url, {
@@ -322,6 +323,7 @@ class CoreViewTests(DashboardBaseTestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context['show_password_form_errors'])
+        self.assertTrue(any('Erro ao alterar a senha' in str(m) for m in response.context['messages']))
 
     def test_user_profile_auto_create_on_get(self):
         self.profile_a.delete()
