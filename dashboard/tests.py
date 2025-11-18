@@ -13,7 +13,8 @@ from accounts.models import UserProfile
 from .forms import DriverForm, MaintenanceForm, RouteForm
 from .services import get_vehicle_alerts, VehicleAlert, calculate_route_details, get_diesel_price
 
-from django.contrib.staticfiles.testing import LiveServerTestCase
+# Alterado para StaticLiveServerTestCase para servir arquivos estáticos corretamente
+from django.contrib.staticfiles.testing import StaticLiveServerTestCase 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -353,10 +354,8 @@ class CoreViewTests(DashboardBaseTestCase):
                 current_mileage=1000,
                 status='scheduled'
             )
-        
         response = self.client.get(reverse('dashboard'))
         upcoming = response.context['upcoming_maintenances']
-        
         self.assertEqual(len(upcoming), 3)
         self.assertEqual(upcoming[0].service_type, "S0")
 
@@ -642,7 +641,7 @@ class LogicTests(DashboardBaseTestCase):
         a4 = VehicleAlert(v, 'S4', 'M4', 'medium', 5, 'km')
         self.assertTrue(a2 < a1) 
         self.assertTrue(a2 < a3) 
-        self.assertFalse(a4 < a2) 
+        self.assertFalse(a4 < a2) # Corrected: KM alerts (False) are not less than Day alerts (True) when unit differs, effectively.
 
     @patch('dashboard.services.requests.post')
     def test_calculate_route_details_api_error_403(self, mock_post):
@@ -918,7 +917,8 @@ class SecurityTests(DashboardBaseTestCase):
         response = self.client.get(reverse('vehicle-list'))
         self.assertEqual(response.status_code, 302)
 
-class SimplifiedFrontendTests(LiveServerTestCase):
+# Alterado para StaticLiveServerTestCase para servir arquivos estáticos e evitar problemas de renderização/layout
+class SimplifiedFrontendTests(StaticLiveServerTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -926,6 +926,8 @@ class SimplifiedFrontendTests(LiveServerTestCase):
         options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
+        # Definir tamanho da janela para evitar que elementos fiquem escondidos em layouts responsivos
+        options.add_argument("--window-size=1920,1080")
         cls.driver = webdriver.Chrome(options=options)
         cls.driver.implicitly_wait(5)
 
@@ -951,97 +953,101 @@ class SimplifiedFrontendTests(LiveServerTestCase):
         self.driver.find_element(By.ID, "id_username").send_keys('selenium@teste.com')
         self.driver.find_element(By.ID, "id_password").send_keys('password123')
         self.driver.find_element(By.CLASS_NAME, "btn-signin").click()
-        WebDriverWait(self.driver, 50).until(
+        WebDriverWait(self.driver, 20).until(
             EC.title_contains("Dashboard de Gestão de Frotas")
         )
 
     def test_page_navigation(self):
         self.driver.get(self.live_server_url + reverse('vehicle-list'))
-        self.assertTrue(WebDriverWait(self.driver, 50).until(
+        # Adicionado wait para garantir que a URL mudou e o corpo da página carregou
+        WebDriverWait(self.driver, 10).until(
+            EC.url_contains(reverse('vehicle-list'))
+        )
+        self.assertTrue(WebDriverWait(self.driver, 20).until(
             EC.visibility_of_element_located((By.ID, "open-add-vehicle-modal"))
         ))
         self.assertIn("Gerenciamento de Veículos", self.driver.title)
 
         self.driver.get(self.live_server_url + reverse('driver-list'))
-        self.assertTrue(WebDriverWait(self.driver, 50).until(
+        self.assertTrue(WebDriverWait(self.driver, 20).until(
             EC.visibility_of_element_located((By.ID, "open-add-driver-modal"))
         ))
         self.assertIn("Gerenciamento de Motoristas", self.driver.title)
 
         self.driver.get(self.live_server_url + reverse('route-list'))
-        self.assertTrue(WebDriverWait(self.driver, 50).until(
+        self.assertTrue(WebDriverWait(self.driver, 20).until(
             EC.visibility_of_element_located((By.ID, "open-add-route-modal"))
         ))
         self.assertIn("Planejamento de Rotas", self.driver.title)
         
         self.driver.get(self.live_server_url + reverse('maintenance-list'))
-        self.assertTrue(WebDriverWait(self.driver, 50).until(
+        self.assertTrue(WebDriverWait(self.driver, 20).until(
             EC.visibility_of_element_located((By.ID, "open-add-maintenance-modal"))
         ))
         self.assertIn("Gerenciamento de Manutenções", self.driver.title)
         
         self.driver.get(self.live_server_url + reverse('alert-config'))
-        self.assertTrue(WebDriverWait(self.driver, 50).until(
+        self.assertTrue(WebDriverWait(self.driver, 20).until(
             EC.visibility_of_element_located((By.ID, "open-config-modal"))
         ))
         self.assertIn("Alertas de Manutenção", self.driver.title)
 
     def test_driver_modal_opens(self):
         self.driver.get(self.live_server_url + reverse('driver-list'))
-        add_button = WebDriverWait(self.driver, 50).until(
+        add_button = WebDriverWait(self.driver, 20).until(
             EC.visibility_of_element_located((By.ID, "open-add-driver-modal"))
         )
         add_button.click()
         
-        modal = WebDriverWait(self.driver, 50).until(
+        modal = WebDriverWait(self.driver, 20).until(
             EC.visibility_of_element_located((By.ID, "add-driver-modal"))
         )
         self.assertTrue(modal.is_displayed())
 
     def test_vehicle_modal_opens(self):
         self.driver.get(self.live_server_url + reverse('vehicle-list'))
-        add_button = WebDriverWait(self.driver, 50).until(
+        add_button = WebDriverWait(self.driver, 20).until(
             EC.visibility_of_element_located((By.ID, "open-add-vehicle-modal"))
         )
         add_button.click()
         
-        modal = WebDriverWait(self.driver, 50).until(
+        modal = WebDriverWait(self.driver, 20).until(
             EC.visibility_of_element_located((By.ID, "add-vehicle-modal"))
         )
         self.assertTrue(modal.is_displayed())
 
     def test_route_modal_opens(self):
         self.driver.get(self.live_server_url + reverse('route-list'))
-        add_button = WebDriverWait(self.driver, 50).until(
+        add_button = WebDriverWait(self.driver, 20).until(
             EC.visibility_of_element_located((By.ID, "open-add-route-modal"))
         )
         add_button.click()
         
-        modal = WebDriverWait(self.driver, 50).until(
+        modal = WebDriverWait(self.driver, 20).until(
             EC.visibility_of_element_located((By.ID, "route-modal"))
         )
         self.assertTrue(modal.is_displayed())
 
     def test_maintenance_modal_opens(self):
         self.driver.get(self.live_server_url + reverse('maintenance-list'))
-        add_button = WebDriverWait(self.driver, 50).until(
+        add_button = WebDriverWait(self.driver, 20).until(
             EC.visibility_of_element_located((By.ID, "open-add-maintenance-modal"))
         )
         add_button.click()
         
-        modal = WebDriverWait(self.driver, 50).until(
+        modal = WebDriverWait(self.driver, 20).until(
             EC.visibility_of_element_located((By.ID, "maintenance-modal"))
         )
         self.assertTrue(modal.is_displayed())
 
     def test_alert_config_modal_opens(self):
         self.driver.get(self.live_server_url + reverse('alert-config'))
-        add_button = WebDriverWait(self.driver, 50).until(
+        add_button = WebDriverWait(self.driver, 20).until(
             EC.visibility_of_element_located((By.ID, "open-config-modal"))
         )
         add_button.click()
         
-        modal = WebDriverWait(self.driver, 50).until(
+        modal = WebDriverWait(self.driver, 20).until(
             EC.visibility_of_element_located((By.ID, "config-modal"))
         )
         self.assertTrue(modal.is_displayed())
