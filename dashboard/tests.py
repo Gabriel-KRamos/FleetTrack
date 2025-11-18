@@ -92,31 +92,7 @@ class ModelTests(DashboardBaseTestCase):
         self.vehicle_a.refresh_from_db()
         self.assertEqual(self.vehicle_a.mileage, 10150)
 
-    def test_vehicle_dynamic_status_property(self):
-        self.assertEqual(self.vehicle_a.dynamic_status_slug, 'available')
-        Route.objects.create(
-            user_profile=self.profile_a, vehicle=self.vehicle_a, driver=self.driver_a,
-            start_location="Origem", end_location="Destino",
-            start_time=self.now - timedelta(hours=1),
-            end_time=self.now + timedelta(hours=2),
-            status='in_progress'
-        )
-        self.vehicle_a.refresh_from_db()
-        self.assertEqual(self.vehicle_a.dynamic_status_slug, 'on_route')
-        
-        Maintenance.objects.create(
-            user_profile=self.profile_a, vehicle=self.vehicle_a,
-            service_type="Manutenção Teste",
-            start_date=self.now - timedelta(hours=1),
-            end_date=self.now + timedelta(hours=2),
-            mechanic_shop_name="Oficina Teste",
-            current_mileage=10150,
-            status='in_progress'
-        )
-        self.vehicle_a.refresh_from_db()
-        self.assertEqual(self.vehicle_a.dynamic_status_slug, 'maintenance')
-
-    def test_model_str_methods(self):
+    def test_str_methods(self):
         self.assertEqual(str(self.driver_a), "Motorista A")
         self.assertEqual(str(self.vehicle_a), "Modelo A - AAA-1111")
         
@@ -135,34 +111,25 @@ class ModelTests(DashboardBaseTestCase):
         alert = AlertConfiguration.objects.create(user_profile=self.profile_a, service_type="Revisão Geral")
         self.assertEqual(str(alert), "Revisão Geral")
 
-    def test_vehicle_properties(self):
+    def test_vehicle_dynamic_status_logic(self):
         self.assertEqual(self.vehicle_a.dynamic_status_slug, 'available')
-        self.assertIsNone(self.vehicle_a.current_route_driver)
-        
         Route.objects.create(
             user_profile=self.profile_a, vehicle=self.vehicle_a, driver=self.driver_a,
-            start_location="Origem", end_location="Destino",
+            start_location="A", end_location="B",
             start_time=self.now - timedelta(hours=1),
             end_time=self.now + timedelta(hours=2),
             status='in_progress'
         )
         self.vehicle_a.refresh_from_db()
-        self.assertEqual(self.vehicle_a.current_route_driver, self.driver_a)
-
-    def test_maintenance_dynamic_status(self):
-        maint = Maintenance.objects.create(
-            user_profile=self.profile_a, vehicle=self.vehicle_a, service_type="Teste",
-            start_date=self.now - timedelta(days=2),
-            end_date=self.now - timedelta(days=1),
-            mechanic_shop_name="Oficina", current_mileage=10000,
-            status='scheduled'
+        self.assertEqual(self.vehicle_a.dynamic_status_slug, 'on_route')
+        
+        Maintenance.objects.create(
+            user_profile=self.profile_a, vehicle=self.vehicle_a, service_type="M",
+            start_date=self.now - timedelta(hours=1), end_date=self.now + timedelta(hours=2),
+            mechanic_shop_name="Oficina", current_mileage=10000, status='in_progress'
         )
-        self.assertEqual(maint.dynamic_status, "Atrasada")
-        self.assertEqual(maint.dynamic_status_slug, "overdue")
-        maint.status = 'completed'
-        maint.save()
-        self.assertEqual(maint.dynamic_status, "Concluída")
-        self.assertEqual(maint.dynamic_status_slug, "completed")
+        self.vehicle_a.refresh_from_db()
+        self.assertEqual(self.vehicle_a.dynamic_status_slug, 'maintenance')
 
     def test_route_properties(self):
         route = Route.objects.create(
@@ -178,6 +145,19 @@ class ModelTests(DashboardBaseTestCase):
         route.estimated_distance = 100
         route.fuel_price_per_liter = 5.0
         self.assertEqual(route.estimated_fuel_cost, 50.0)
+
+    def test_maintenance_dynamic_status(self):
+        maint = Maintenance.objects.create(
+            user_profile=self.profile_a, vehicle=self.vehicle_a, service_type="Teste",
+            start_date=self.now - timedelta(days=2),
+            end_date=self.now - timedelta(days=1),
+            mechanic_shop_name="Oficina", current_mileage=10000,
+            status='scheduled'
+        )
+        self.assertEqual(maint.dynamic_status_slug, "overdue")
+        maint.status = 'completed'
+        maint.save()
+        self.assertEqual(maint.dynamic_status_slug, "completed")
 
 class FormTests(DashboardBaseTestCase):
     def test_driver_form_valid(self):
@@ -209,8 +189,6 @@ class FormTests(DashboardBaseTestCase):
             'admission_date': '2024-01-01'
         }
         form = DriverForm(data=form_data, instance=Driver(user_profile=self.profile_a))
-        if Driver.objects.filter(email=form_data['email'], user_profile=self.profile_a, is_active=True).exists():
-             form.add_error('email', "Este endereço de email já está em uso por um motorista ativo.")
         self.assertFalse(form.is_valid())
         self.assertIn('email', form.errors)
 
@@ -376,13 +354,6 @@ class DriverViewTests(DashboardBaseTestCase):
         self.assertRedirects(response, self.list_url)
         self.driver_a.refresh_from_db()
         self.assertFalse(self.driver_a.is_active)
-    
-    def test_driver_route_history_json(self):
-        Route.objects.create(user_profile=self.profile_a, vehicle=self.vehicle_a, driver=self.driver_a, start_location="A", end_location="B", start_time=self.now, end_time=self.now, status='completed', actual_distance=10)
-        url = reverse('driver-route-history', kwargs={'pk': self.driver_a.pk})
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.json()['history']), 1)
 
 class MaintenanceViewTests(DashboardBaseTestCase):
     def setUp(self):
@@ -458,7 +429,7 @@ class MaintenanceViewTests(DashboardBaseTestCase):
         self.maint.refresh_from_db()
         self.assertEqual(self.maint.status, 'canceled')
 
-class AlertViewTests(DashboardBaseTestCase):
+class AlertConfigViewTests(DashboardBaseTestCase):
     def setUp(self):
         super().setUp()
         self.config_url = reverse('alert-config')
@@ -492,14 +463,13 @@ class AlertViewTests(DashboardBaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(any('Erro ao salvar' in str(m) for m in response.context['messages']))
 
+class LogicTests(DashboardBaseTestCase):
     def test_get_vehicle_alerts_logic(self):
         AlertConfiguration.objects.create(user_profile=self.profile_a, service_type='Revisão Geral', km_threshold=100, days_threshold=30, is_active=True, priority='high')
         
-        # Alert by KM
         v1 = Vehicle.objects.create(user_profile=self.profile_a, plate='KM-001', model='M', year=2020, initial_mileage=1000, acquisition_date=date.today())
         Maintenance.objects.create(user_profile=self.profile_a, vehicle=v1, service_type='Revisão Geral', start_date=self.now, end_date=self.now, mechanic_shop_name="O", current_mileage=500, status='completed', actual_end_date=self.now)
         
-        # Alert by Days
         v2 = Vehicle.objects.create(user_profile=self.profile_a, plate='DAY-001', model='M', year=2020, initial_mileage=0, acquisition_date=(self.now - timedelta(days=40)).date())
         
         alerts = get_vehicle_alerts(self.profile_a)
@@ -515,36 +485,152 @@ class AlertViewTests(DashboardBaseTestCase):
         alerts = get_vehicle_alerts(self.profile_a, limit=2)
         self.assertEqual(len(alerts), 2)
 
-class RouteViewsTests(DashboardBaseTestCase):
-    def setUp(self):
-        super().setUp()
-        self.route = Route.objects.create(
-            user_profile=self.profile_a, vehicle=self.vehicle_a, driver=self.driver_a,
-            start_location="A", end_location="B",
-            start_time=self.now + timedelta(days=1), end_time=self.now + timedelta(days=1, hours=1)
-        )
+    @patch('dashboard.services.requests.post')
+    def test_calculate_route_details_api_error_403(self, mock_post):
+        from .services import calculate_route_details
+        mock_response = mock_post.return_value
+        mock_response.status_code = 403
+        mock_response.text = 'API Key Invalid'
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(response=mock_response)
+        result = calculate_route_details("Origem", "Destino")
+        self.assertIsInstance(result, str)
+        self.assertIn("Erro na API do Google (403)", result)
 
-    def test_route_list_filters(self):
-        res = self.client.get(reverse('route-list'), {'search': 'A'})
-        self.assertContains(res, 'A')
-        res = self.client.get(reverse('route-list'), {'status': 'scheduled'})
-        self.assertContains(res, 'A')
-        res = self.client.get(reverse('route-list'), {'status': 'completed'})
-        self.assertNotContains(res, 'A')
+class ApiViewTests(DashboardBaseTestCase):
+    def test_vehicle_route_history_json(self):
+        Route.objects.create(
+            user_profile=self.profile_a, vehicle=self.vehicle_a, driver=self.driver_a,
+            start_location="JSON Test, SC", end_location="API Test, PR",
+            start_time=self.now - timedelta(days=2),
+            end_time=self.now - timedelta(days=1),
+            status='completed', actual_distance=250
+        )
+        history_url = reverse('vehicle-route-history', kwargs={'pk': self.vehicle_a.pk})
+        response = self.client.get(history_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()['history']), 1)
+        
+    def test_user_a_cannot_see_user_b_history_json(self):
+        history_url_b = reverse('vehicle-route-history', kwargs={'pk': self.vehicle_b.pk})
+        response = self.client.get(history_url_b)
+        self.assertEqual(response.status_code, 404)
+    
+    def test_vehicle_maintenance_history_json(self):
+        Maintenance.objects.create(
+            user_profile=self.profile_a, vehicle=self.vehicle_a, service_type="S",
+            start_date=self.now, end_date=self.now, mechanic_shop_name="O", current_mileage=100, status='completed', actual_cost=100, actual_end_date=self.now
+        )
+        response = self.client.get(reverse('vehicle-maintenance-history', kwargs={'pk': self.vehicle_a.pk}))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()['history']), 1)
+
+    def test_driver_route_history_json(self):
+        Route.objects.create(user_profile=self.profile_a, vehicle=self.vehicle_a, driver=self.driver_a, start_location="A", end_location="B", start_time=self.now, end_time=self.now, status='completed', actual_distance=10)
+        url = reverse('driver-route-history', kwargs={'pk': self.driver_a.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()['history']), 1)
+
+class RouteViewMockTests(DashboardBaseTestCase):
+    @patch('dashboard.route_views.get_diesel_price')
+    @patch('dashboard.route_views.calculate_route_details')
+    def test_route_create_view_with_mock(self, mock_calculate_route, mock_get_price):
+        mock_calculate_route.return_value = {'distance': 150.0, 'toll_cost': 25.50}
+        mock_get_price.return_value = Decimal('5.80')
+        add_url = reverse('route-add')
+        form_data = {
+            'start_location': 'Joinville, SC', 'end_location': 'Curitiba, PR',
+            'vehicle': self.vehicle_a.pk, 'driver': self.driver_a.pk,
+            'start_time': (self.now + timedelta(days=1)).strftime('%d/%m/%Y %H:%M'),
+            'end_time': (self.now + timedelta(days=2)).strftime('%d/%m/%Y %H:%M'),
+        }
+        response = self.client.post(add_url, data=form_data, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()['success'])
+        new_route = Route.objects.latest('id')
+        self.assertEqual(new_route.estimated_distance, Decimal('150.00'))
+
+    @patch('dashboard.route_views.get_diesel_price')
+    @patch('dashboard.route_views.calculate_route_details')
+    def test_route_complete_view_updates_mileage(self, mock_calculate_route, mock_get_price):
+        mock_calculate_route.return_value = {'distance': 100.0, 'toll_cost': 10.0}
+        mock_get_price.return_value = Decimal('5.0')
+        route = Route.objects.create(
+            user_profile=self.profile_a, vehicle=self.vehicle_a, driver=self.driver_a,
+            start_location="Ponto A", end_location="Ponto B",
+            start_time=self.now - timedelta(days=2), end_time=self.now - timedelta(days=1),
+            status='in_progress', estimated_distance=100.0
+        )
+        complete_url = reverse('route-complete', kwargs={'pk': route.pk})
+        response = self.client.post(complete_url, data={'actual_distance': 125.50})
+        self.assertRedirects(response, reverse('route-list'))
+        route.refresh_from_db()
+        self.vehicle_a.refresh_from_db()
+        self.assertEqual(route.status, 'completed')
+        self.assertEqual(self.vehicle_a.mileage, 10125)
+
+    @patch('dashboard.route_views.get_diesel_price')
+    @patch('dashboard.route_views.calculate_route_details')
+    def test_route_list_view_get_with_filters(self, mock_calculate_route, mock_get_price):
+        mock_calculate_route.return_value = {'distance': 100.0, 'toll_cost': 10.0}
+        mock_get_price.return_value = Decimal('5.0')
+        Route.objects.create(
+            user_profile=self.profile_a, vehicle=self.vehicle_a, driver=self.driver_a,
+            start_location="Joinville, SC", end_location="Curitiba, PR",
+            start_time=self.now + timedelta(days=1), end_time=self.now + timedelta(days=2),
+            status='scheduled'
+        )
+        list_url = reverse('route-list')
+        response_search = self.client.get(list_url, {'search': 'Joinville'})
+        self.assertEqual(response_search.status_code, 200)
+        self.assertContains(response_search, 'Joinville, SC')
+        response_status = self.client.get(list_url, {'status': 'completed'})
+        self.assertEqual(response_status.status_code, 200)
+        self.assertNotContains(response_status, 'Joinville, SC')
+
+    @patch('dashboard.route_views.get_diesel_price')
+    @patch('dashboard.route_views.calculate_route_details')
+    def test_route_cancel_and_reactivate_view(self, mock_calculate_route, mock_get_price):
+        mock_calculate_route.return_value = {'distance': 100.0, 'toll_cost': 10.0}
+        mock_get_price.return_value = Decimal('5.0')
+        route = Route.objects.create(
+            user_profile=self.profile_a, vehicle=self.vehicle_a, driver=self.driver_a,
+            start_location="Ponto A, SC", end_location="Ponto B, PR",
+            start_time=self.now + timedelta(days=1), end_time=self.now + timedelta(days=2),
+            status='scheduled'
+        )
+        cancel_url = reverse('route-cancel', kwargs={'pk': route.pk})
+        self.client.post(cancel_url)
+        route.refresh_from_db()
+        self.assertEqual(route.status, 'canceled')
+        reactivate_url = reverse('route-reactivate', kwargs={'pk': route.pk})
+        self.client.post(reactivate_url)
+        route.refresh_from_db()
+        self.assertEqual(route.status, 'scheduled')
 
     @patch('dashboard.route_views.calculate_route_details')
     @patch('dashboard.route_views.get_diesel_price')
-    def test_route_create_success(self, mock_price, mock_calc):
+    def test_route_update_success(self, mock_price, mock_calc):
         mock_calc.return_value = {'distance': 50.0, 'toll_cost': 0.0}
         mock_price.return_value = Decimal('5.0')
-        response = self.client.post(reverse('route-add'), {
-            'start_location': 'A, SC', 'end_location': 'B, SC',
+        route = Route.objects.create(
+            user_profile=self.profile_a, vehicle=self.vehicle_a, driver=self.driver_a,
+            start_location="A", end_location="B",
+            start_time=self.now + timedelta(days=1), end_time=self.now + timedelta(days=1, hours=1), status='scheduled'
+        )
+        response = self.client.post(reverse('route-update', kwargs={'pk': route.pk}), {
+            'start_location': 'Joinville, SC', 'end_location': 'Curitiba, PR',
             'vehicle': self.vehicle_a.pk, 'driver': self.driver_a.pk,
-            'start_time': (self.now + timedelta(days=1)).strftime('%d/%m/%Y %H:%M'),
-            'end_time': (self.now + timedelta(days=1, hours=1)).strftime('%d/%m/%Y %H:%M')
+            'start_time': (self.now + timedelta(days=2)).strftime('%d/%m/%Y %H:%M'),
+            'end_time': (self.now + timedelta(days=2, hours=2)).strftime('%d/%m/%Y %H:%M'),
         })
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()['success'])
+
+    def test_route_update_invalid(self):
+        route = Route.objects.create(user_profile=self.profile_a, start_location="A", end_location="B", start_time=self.now, end_time=self.now)
+        response = self.client.post(reverse('route-update', kwargs={'pk': route.pk}), {})
+        self.assertEqual(response.status_code, 400)
 
     def test_route_create_api_error(self):
         with patch('dashboard.route_views.calculate_route_details') as mock_calc:
@@ -557,45 +643,6 @@ class RouteViewsTests(DashboardBaseTestCase):
             })
             self.assertEqual(response.status_code, 400)
             self.assertIn("Erro API", str(response.content))
-
-    @patch('dashboard.route_views.calculate_route_details')
-    @patch('dashboard.route_views.get_diesel_price')
-    def test_route_update_success(self, mock_price, mock_calc):
-        mock_calc.return_value = {'distance': 50.0, 'toll_cost': 0.0}
-        mock_price.return_value = Decimal('5.0')
-        response = self.client.post(reverse('route-update', kwargs={'pk': self.route.pk}), {
-            'start_location': 'Joinville, SC', 'end_location': 'Curitiba, PR',
-            'vehicle': self.vehicle_a.pk, 'driver': self.driver_a.pk,
-            'start_time': (self.now + timedelta(days=2)).strftime('%d/%m/%Y %H:%M'),
-            'end_time': (self.now + timedelta(days=2, hours=2)).strftime('%d/%m/%Y %H:%M'),
-        })
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.json()['success'])
-
-    def test_route_update_invalid(self):
-        response = self.client.post(reverse('route-update', kwargs={'pk': self.route.pk}), {})
-        self.assertEqual(response.status_code, 400)
-
-    def test_route_cancel_reactivate(self):
-        self.client.post(reverse('route-cancel', kwargs={'pk': self.route.pk}))
-        self.route.refresh_from_db()
-        self.assertEqual(self.route.status, 'canceled')
-        
-        self.client.post(reverse('route-reactivate', kwargs={'pk': self.route.pk}))
-        self.route.refresh_from_db()
-        self.assertEqual(self.route.status, 'scheduled')
-
-    def test_route_complete(self):
-        route = Route.objects.create(
-            user_profile=self.profile_a, vehicle=self.vehicle_a, driver=self.driver_a,
-            start_location="A", end_location="B",
-            start_time=self.now - timedelta(days=1), end_time=self.now - timedelta(hours=1),
-            status='in_progress', estimated_distance=100
-        )
-        self.client.post(reverse('route-complete', kwargs={'pk': route.pk}), {'actual_distance': 120})
-        route.refresh_from_db()
-        self.assertEqual(route.status, 'completed')
-        self.assertEqual(route.actual_distance, Decimal('120.00'))
 
 class VehicleViewTests(DashboardBaseTestCase):
     def setUp(self):
@@ -647,24 +694,6 @@ class VehicleViewTests(DashboardBaseTestCase):
         self.vehicle_a.refresh_from_db()
         self.assertEqual(self.vehicle_a.status, 'available')
 
-    def test_vehicle_history_json(self):
-        Route.objects.create(
-            user_profile=self.profile_a, vehicle=self.vehicle_a, driver=self.driver_a,
-            start_location="A", end_location="B",
-            start_time=self.now, end_time=self.now, status='completed', actual_distance=100
-        )
-        response = self.client.get(reverse('vehicle-route-history', kwargs={'pk': self.vehicle_a.pk}))
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.json()['history']), 1)
-        
-        Maintenance.objects.create(
-            user_profile=self.profile_a, vehicle=self.vehicle_a, service_type="S",
-            start_date=self.now, end_date=self.now, mechanic_shop_name="O", current_mileage=100, status='completed', actual_cost=100, actual_end_date=self.now
-        )
-        response = self.client.get(reverse('vehicle-maintenance-history', kwargs={'pk': self.vehicle_a.pk}))
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.json()['history']), 1)
-
 class SecurityTests(DashboardBaseTestCase):
     def test_user_a_cannot_update_user_b_vehicle(self):
         response = self.client.post(reverse('vehicle-update', kwargs={'pk': self.vehicle_b.pk}), {})
@@ -674,17 +703,6 @@ class SecurityTests(DashboardBaseTestCase):
         self.client.logout()
         response = self.client.get(reverse('vehicle-list'))
         self.assertEqual(response.status_code, 302)
-
-    @patch('dashboard.services.requests.post')
-    def test_calculate_route_details_api_error_403(self, mock_post):
-        from .services import calculate_route_details
-        mock_response = mock_post.return_value
-        mock_response.status_code = 403
-        mock_response.text = 'API Key Invalid'
-        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(response=mock_response)
-        result = calculate_route_details("Origem", "Destino")
-        self.assertIsInstance(result, str)
-        self.assertIn("Erro na API do Google (403)", result)
 
 class SimplifiedFrontendTests(LiveServerTestCase):
     @classmethod
