@@ -830,7 +830,7 @@ class RouteViewMockTests(DashboardBaseTestCase):
         with patch('dashboard.route_views.calculate_route_details') as mock_calc:
             mock_calc.return_value = {'distance': 10.0, 'toll_cost': 0.0}
             response = self.client.post(reverse('route-add'), {
-                'start_location': 'A',
+                'start_location': 'A', # Bad location
                 'end_location': 'B, SC',
                 'vehicle': self.vehicle_a.pk,
                 'driver': self.driver_a.pk,
@@ -838,6 +838,7 @@ class RouteViewMockTests(DashboardBaseTestCase):
                 'end_time': (self.now + timedelta(days=1, hours=1)).strftime('%d/%m/%Y %H:%M')
             })
             self.assertEqual(response.status_code, 400)
+            # Asserting generic bad request or specific form error string
             self.assertIn("Formato inv", str(response.content))
 
 class VehicleViewTests(DashboardBaseTestCase):
@@ -957,7 +958,6 @@ class SimplifiedFrontendTests(StaticLiveServerTestCase):
         )
 
     def open_modal(self, button_id, modal_id):
-        """Helper para abrir modais de forma robusta usando JS click"""
         btn = WebDriverWait(self.driver, 20).until(
             EC.element_to_be_clickable((By.ID, button_id))
         )
@@ -1024,13 +1024,7 @@ class SimplifiedFrontendTests(StaticLiveServerTestCase):
         modal = self.open_modal("open-config-modal", "config-modal")
         self.assertTrue(modal.is_displayed())
 
-
 class CoverageImprovementsTestCase(DashboardBaseTestCase):
-    """
-    Testes focados especificamente em atingir linhas não cobertas (branch coverage)
-    nas Views e Services.
-    """
-
     def test_dashboard_vehicle_counters_logic(self):
         Vehicle.objects.all().delete()
         
@@ -1067,7 +1061,6 @@ class CoverageImprovementsTestCase(DashboardBaseTestCase):
         self.assertTrue(any('Erro ao alterar a senha' in str(m) for m in messages))
 
     def test_vehicle_list_search_branches(self):
-        
         Vehicle.objects.create(user_profile=self.profile_a, plate='ZZZ-9999', model='Invisivel', year=2020, initial_mileage=0, acquisition_date=date.today())
         
         res = self.client.get(reverse('vehicle-list'), {'search': 'Modelo A'})
@@ -1086,7 +1079,6 @@ class CoverageImprovementsTestCase(DashboardBaseTestCase):
         self.assertRedirects(response, reverse('maintenance-list'))
 
     def test_maintenance_list_date_filters(self):
-        
         m1 = Maintenance.objects.create(user_profile=self.profile_a, vehicle=self.vehicle_a, service_type="S1", start_date=self.now + timedelta(days=10), end_date=self.now + timedelta(days=11), mechanic_shop_name="O", current_mileage=0, status='scheduled')
         m2 = Maintenance.objects.create(user_profile=self.profile_a, vehicle=self.vehicle_a, service_type="S2", start_date=self.now - timedelta(days=10), end_date=self.now - timedelta(days=9), mechanic_shop_name="O", current_mileage=0, status='scheduled')
         
@@ -1106,7 +1098,6 @@ class CoverageImprovementsTestCase(DashboardBaseTestCase):
         self.assertEqual(AlertConfiguration.objects.filter(user_profile=self.profile_a).count(), 6)
 
     def test_alert_config_post_error_context(self):
-        
         AlertConfiguration.objects.create(user_profile=self.profile_a, service_type='Revisão Geral', priority='high')
         
         response = self.client.post(reverse('alert-config'), {'form-TOTAL_FORMS': '0'})
