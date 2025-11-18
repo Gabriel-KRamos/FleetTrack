@@ -323,6 +323,44 @@ class CoreViewTests(DashboardBaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context['show_password_form_errors'])
 
+    def test_user_profile_auto_create_on_get(self):
+        self.profile_a.delete()
+        self.user_a.refresh_from_db()
+        
+        response = self.client.get(self.profile_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(UserProfile.objects.filter(user=self.user_a).exists())
+
+    def test_user_profile_auto_create_on_post(self):
+        self.profile_a.delete()
+        response = self.client.post(self.profile_url, {
+            'update_profile': '1', 
+            'first_name': 'Recovered', 
+            'username': 'user_a@teste.com',
+            'company_name': 'New Comp',
+            'cnpj': '11111111111111'
+        })
+        self.assertTrue(UserProfile.objects.filter(user=self.user_a).exists())
+
+    def test_dashboard_upcoming_maintenance_logic(self):
+        for i in range(4):
+            Maintenance.objects.create(
+                user_profile=self.profile_a,
+                vehicle=self.vehicle_a,
+                service_type=f"S{i}",
+                start_date=self.now + timedelta(days=i+1),
+                end_date=self.now + timedelta(days=i+2),
+                mechanic_shop_name="Shop",
+                current_mileage=1000,
+                status='scheduled'
+            )
+        
+        response = self.client.get(reverse('dashboard'))
+        upcoming = response.context['upcoming_maintenances']
+        
+        self.assertEqual(len(upcoming), 3)
+        self.assertEqual(upcoming[0].service_type, "S0")
+
 class DriverViewTests(DashboardBaseTestCase):
     def setUp(self):
         super().setUp()
@@ -377,6 +415,26 @@ class DriverViewTests(DashboardBaseTestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.json()['history']), 1)
+
+    def test_driver_create_detailed_errors(self):
+        response = self.client.post(self.add_url, {
+            'full_name': 'Driver Err', 
+            'email': 'invalid-email', 
+            'license_number': '12345678901', 
+            'admission_date': '2024-01-01'
+        })
+        self.assertRedirects(response, self.list_url)
+        messages = list(response.context['messages'])
+        self.assertTrue(any('Email' in str(m) for m in messages))
+
+    def test_driver_search_filters(self):
+        d2 = Driver.objects.create(user_profile=self.profile_a, full_name="Busca Teste", email="busca@t.com", license_number="99999999999", admission_date=date.today())
+        
+        res = self.client.get(self.list_url, {'search': '99999999999'})
+        self.assertIn(d2, res.context['drivers'])
+        
+        res = self.client.get(self.list_url, {'search': 'busca@t.com'})
+        self.assertIn(d2, res.context['drivers'])
 
 class MaintenanceViewTests(DashboardBaseTestCase):
     def setUp(self):
@@ -452,6 +510,52 @@ class MaintenanceViewTests(DashboardBaseTestCase):
         self.maint.refresh_from_db()
         self.assertEqual(self.maint.status, 'canceled')
 
+    def test_maintenance_complete_cost_warning(self):
+        self.maint.estimated_cost = 100.00
+        self.maint.save()
+        
+        url = reverse('maintenance-complete', kwargs={'pk': self.maint.pk})
+        response = self.client.post(url, {
+            'actual_cost': '200.00', 
+            'actual_end_date': self.now.strftime('%d/%m/%Y %H:%M')
+        })
+        
+        self.assertRedirects(response, self.list_url)
+        messages = list(response.context['messages'])
+        self.assertTrue(any('diferente do estimado' in str(m) for m in messages))
+        self.assertEqual(messages[0].level_tag, 'warning')
+
+    def test_maintenance_search_filters(self):
+        Maintenance.objects.create(
+            user_profile=self.profile_a, vehicle=self.vehicle_a, 
+            service_type="Troca de Óleo", 
+            mechanic_shop_name="Mecânica X", 
+            start_date=self.now, end_date=self.now, current_mileage=1000
+        )
+        
+        res = self.client.get(self.list_url, {'search': 'Óleo'})
+        self.assertEqual(len(res.context['maintenances']), 1)
+        
+        res = self.client.get(self.list_url, {'search': 'Mecânica X'})
+        self.assertEqual(len(res.context['maintenances']), 1)
+        
+        res = self.client.get(self.list_url, {'search': self.vehicle_a.plate})
+        self.assertGreaterEqual(len(res.context['maintenances']), 1)
+
+    def test_maintenance_form_field_errors_display(self):
+        response = self.client.post(self.add_url, {
+            'vehicle': self.vehicle_a.pk,
+            'service_choice': 'Revisão Geral',
+            'start_date': 'data_invalida',
+            'end_date': 'data_invalida',
+            'mechanic_shop_name': 'Shop',
+        })
+        
+        self.assertEqual(response.status_code, 302)
+        messages = list(response.context['messages'])
+        self.assertTrue(any('Data de Início' in str(m) for m in messages))
+        self.assertTrue(any('error' == m.tags for m in messages))
+
 class AlertViewTests(DashboardBaseTestCase):
     def setUp(self):
         super().setUp()
@@ -485,6 +589,47 @@ class AlertViewTests(DashboardBaseTestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertTrue(any('Erro ao salvar' in str(m) for m in response.context['messages']))
+
+    def test_alert_config_filters_logic(self):
+        AlertConfiguration.objects.create(user_profile=self.profile_a, service_type='Revisão Geral', priority='high', is_active=True, km_threshold=1)
+        AlertConfiguration.objects.create(user_profile=self.profile_a, service_type='Troca de Pneus', priority='low', is_active=True, km_threshold=1)
+        
+        v1 = Vehicle.objects.create(user_profile=self.profile_a, plate='HIGH-01', model='M1', year=2020, initial_mileage=1000, acquisition_date=date.today())
+        Maintenance.objects.create(user_profile=self.profile_a, vehicle=v1, service_type='Revisão Geral', start_date=self.now, end_date=self.now, mechanic_shop_name="O", current_mileage=500, status='completed', actual_end_date=self.now)
+        
+        v2 = Vehicle.objects.create(user_profile=self.profile_a, plate='LOW-01', model='M2', year=2020, initial_mileage=1000, acquisition_date=date.today())
+        Maintenance.objects.create(user_profile=self.profile_a, vehicle=v2, service_type='Troca de Pneus', start_date=self.now, end_date=self.now, mechanic_shop_name="O", current_mileage=500, status='completed', actual_end_date=self.now)
+
+        response = self.client.get(self.config_url, {'priority': 'high'})
+        alerts = response.context['alerts']
+        self.assertTrue(any(a.priority == 'high' for a in alerts))
+        self.assertFalse(any(a.priority == 'low' for a in alerts))
+
+        response = self.client.get(self.config_url, {'search': 'LOW-01'})
+        alerts = response.context['alerts']
+        self.assertEqual(len(alerts), 1)
+        self.assertEqual(alerts[0].vehicle.plate, 'LOW-01')
+
+    def test_alert_config_post_invalid_retains_filters(self):
+        AlertConfiguration.objects.create(user_profile=self.profile_a, service_type='Revisão Geral', priority='high', is_active=True, km_threshold=1)
+        v1 = Vehicle.objects.create(user_profile=self.profile_a, plate='TEST-99', model='M', year=2020, initial_mileage=1000, acquisition_date=date.today())
+        Maintenance.objects.create(user_profile=self.profile_a, vehicle=v1, service_type='Revisão Geral', start_date=self.now, end_date=self.now, mechanic_shop_name="O", current_mileage=500, status='completed', actual_end_date=self.now)
+
+        response = self.client.post(
+            f"{self.config_url}?search=TEST-99", 
+            {
+                'form-TOTAL_FORMS': '1', 
+                'form-INITIAL_FORMS': '1', 
+                'form-0-id': 'invalid_id', 
+            }
+        )
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(any('Erro ao salvar' in str(m) for m in response.context['messages']))
+        
+        alerts = response.context['alerts']
+        self.assertTrue(len(alerts) > 0)
+        self.assertEqual(alerts[0].vehicle.plate, 'TEST-99')
 
 class LogicTests(DashboardBaseTestCase):
     def test_get_vehicle_alerts_logic(self):
