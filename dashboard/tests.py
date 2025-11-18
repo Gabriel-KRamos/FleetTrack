@@ -757,28 +757,33 @@ class SimplifiedFrontendTests(LiveServerTestCase):
     def test_page_navigation(self):
         self.driver.get(self.live_server_url + reverse('vehicle-list'))
         self.assertTrue(WebDriverWait(self.driver, 50).until(
-            EC.title_contains("Gerenciamento de Veículos")
+            EC.visibility_of_element_located((By.ID, "open-add-vehicle-modal"))
         ))
-        
+        self.assertIn("Gerenciamento de Veículos", self.driver.title)
+
         self.driver.get(self.live_server_url + reverse('driver-list'))
         self.assertTrue(WebDriverWait(self.driver, 50).until(
-            EC.title_contains("Gerenciamento de Motoristas")
+            EC.visibility_of_element_located((By.ID, "open-add-driver-modal"))
         ))
+        self.assertIn("Gerenciamento de Motoristas", self.driver.title)
 
         self.driver.get(self.live_server_url + reverse('route-list'))
         self.assertTrue(WebDriverWait(self.driver, 50).until(
-            EC.title_contains("Planejamento de Rotas")
+            EC.visibility_of_element_located((By.ID, "open-add-route-modal"))
         ))
+        self.assertIn("Planejamento de Rotas", self.driver.title)
         
         self.driver.get(self.live_server_url + reverse('maintenance-list'))
         self.assertTrue(WebDriverWait(self.driver, 50).until(
-            EC.title_contains("Gerenciamento de Manutenções")
+            EC.visibility_of_element_located((By.ID, "open-add-maintenance-modal"))
         ))
+        self.assertIn("Gerenciamento de Manutenções", self.driver.title)
         
         self.driver.get(self.live_server_url + reverse('alert-config'))
         self.assertTrue(WebDriverWait(self.driver, 50).until(
-            EC.title_contains("Alertas de Manutenção")
+            EC.visibility_of_element_located((By.ID, "open-config-modal"))
         ))
+        self.assertIn("Alertas de Manutenção", self.driver.title)
 
     def test_driver_modal_opens(self):
         self.driver.get(self.live_server_url + reverse('driver-list'))
