@@ -4,13 +4,16 @@
     "test:coverage": "jest --coverage --coverageReporters=lcov"
   },
   "jest": {
+    "testEnvironment": "jsdom",
     "testMatch": [
       "**/static/js/**/*.test.js"
     ],
     "collectCoverageFrom": [
-      "fleettrack/static/js/*.js",
-      "!**/node_modules/**"
-    ]
+      "**/static/js/*.js",
+      "!**/node_modules/**",
+      "!**/vendor/**"
+    ],
+    "moduleDirectories": ["node_modules", "static/js"]
   },
   "devDependencies": {
     "jest": "^29.7.0",
