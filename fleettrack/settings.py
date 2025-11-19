@@ -7,7 +7,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
+TESTING = 'test' in sys.argv or os.getenv('TESTING') == 'true'
+
 SECRET_KEY = os.getenv('SECRET_KEY')
+if TESTING:
+    SECRET_KEY = 'dummy-secret-key-for-testing'
+
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
 
@@ -54,6 +59,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
+            'debug': TESTING or DEBUG,
         },
     },
 ]
@@ -77,15 +83,11 @@ if os.getenv('GAE_ENV', '').startswith('standard'):
         DATABASES['default']['HOST'] = f"/cloudsql/{instance_name}"
         DATABASES['default'].pop('PORT', None)
 
-TESTING = 'test' in sys.argv
-
 if TESTING:
     DATABASES['default'] = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db_test.sqlite3',
     }
-    SECRET_KEY = 'dummy-secret-key-for-testing'
-
 
 AUTH_PASSWORD_VALIDATORS = [
     {
