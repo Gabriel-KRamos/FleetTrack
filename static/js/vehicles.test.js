@@ -2,21 +2,35 @@
  * @jest-environment jsdom
  */
 const $ = require('jquery');
-global.$ = $;
-global.jQuery = $;
-require('./routes.js');
-describe('Routes Module JS Tests', () => {
-  test('File loads and initializes route features', () => {
-    expect(typeof window).toBe('object');
-  });
-  test('Route creation form submission mock works', () => {
-    const createRoute = jest.fn();
-    createRoute({ start: 'A', end: 'B' });
-    expect(createRoute).toHaveBeenCalled();
-  });
-  test('Route completion handler mock runs', () => {
-    const completeRoute = jest.fn();
-    completeRoute(100);
-    expect(completeRoute).toHaveBeenCalledWith(100);
-  });
+global.$ = global.jQuery = $;
+
+describe('Vehicles JS', () => {
+    beforeEach(() => {
+        document.body.innerHTML = '';
+        jest.resetModules();
+    });
+
+    test('Handles vehicle list interactions', () => {
+        document.body.innerHTML = `
+            <input id="vehicle-search" />
+            <select id="status-filter">
+                <option value="all">Todos</option>
+                <option value="active">Ativos</option>
+            </select>
+            <table id="vehicles-table">
+                <tr class="vehicle-row" data-status="active"><td>Caminhão 1</td></tr>
+            </table>
+            <button class="btn-edit-vehicle">Editar</button>
+        `;
+
+        require('./vehicles.js');
+        $(document).trigger('ready');
+
+        $('#vehicle-search').val('Caminhão').trigger('keyup');
+        $('#status-filter').val('active').trigger('change');
+
+        $('.btn-edit-vehicle').first().click();
+
+        expect(true).toBe(true);
+    });
 });

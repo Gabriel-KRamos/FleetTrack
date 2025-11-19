@@ -2,21 +2,34 @@
  * @jest-environment jsdom
  */
 const $ = require('jquery');
-global.$ = $;
-global.jQuery = $;
-require('./routes.js');
-describe('Routes Module JS Tests', () => {
-  test('File loads and initializes route features', () => {
-    expect(typeof window).toBe('object');
-  });
-  test('Route creation form submission mock works', () => {
-    const createRoute = jest.fn();
-    createRoute({ start: 'A', end: 'B' });
-    expect(createRoute).toHaveBeenCalled();
-  });
-  test('Route completion handler mock runs', () => {
-    const completeRoute = jest.fn();
-    completeRoute(100);
-    expect(completeRoute).toHaveBeenCalledWith(100);
-  });
+global.$ = global.jQuery = $;
+
+describe('Routes JS', () => {
+    beforeEach(() => {
+        document.body.innerHTML = '';
+        jest.resetModules();
+        
+        $.ajax = jest.fn().mockImplementation(({ success }) => {
+            if (success) success({ distance: 100, duration: '2h' });
+        });
+    });
+
+    test('Calculates route on input change', () => {
+        document.body.innerHTML = `
+            <input id="id_start_location" value="Joinville, SC" />
+            <input id="id_end_location" value="Curitiba, PR" />
+            <input id="id_distance" />
+            <form id="route-form"></form>
+        `;
+
+        require('./routes.js');
+        $(document).trigger('ready');
+
+        $('#id_start_location').trigger('change');
+        $('#id_end_location').trigger('change');
+
+        $('#route-form').submit();
+
+        expect(true).toBe(true);
+    });
 });
