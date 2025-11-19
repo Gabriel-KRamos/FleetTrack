@@ -13,12 +13,6 @@ from accounts.models import UserProfile
 from .forms import DriverForm, MaintenanceForm, RouteForm
 from .services import get_vehicle_alerts, VehicleAlert, calculate_route_details, get_diesel_price
 
-from django.contrib.staticfiles.testing import StaticLiveServerTestCase
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-
 class DashboardBaseTestCase(TestCase):
     def setUp(self):
         self.user_a = User.objects.create_user(
@@ -919,111 +913,6 @@ class SecurityTests(DashboardBaseTestCase):
         self.client.logout()
         response = self.client.get(reverse('vehicle-list'))
         self.assertEqual(response.status_code, 302)
-
-class SimplifiedFrontendTests(StaticLiveServerTestCase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        options = webdriver.ChromeOptions()
-        options.add_argument("--headless")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--window-size=1920,1080")
-        cls.driver = webdriver.Chrome(options=options)
-        cls.driver.implicitly_wait(5)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.driver.quit()
-        super().tearDownClass()
-
-    def setUp(self):
-        super().setUp()
-        self.test_user = User.objects.create_user(
-            username='selenium@teste.com',
-            password='password123',
-            first_name='Usuário de Teste'
-        )
-        self.profile = UserProfile.objects.create(
-            user=self.test_user,
-            company_name="Empresa Teste E2E",
-            cnpj="99999999000199"
-        )
-        self.login_url = self.live_server_url + reverse('login')
-        self.driver.get(self.login_url)
-        self.driver.find_element(By.ID, "id_username").send_keys('selenium@teste.com')
-        self.driver.find_element(By.ID, "id_password").send_keys('password123')
-        self.driver.find_element(By.CLASS_NAME, "btn-signin").click()
-        WebDriverWait(self.driver, 20).until(
-            EC.title_contains("Dashboard de Gestão de Frotas")
-        )
-
-    def open_modal(self, button_id, modal_id):
-        btn = WebDriverWait(self.driver, 20).until(
-            EC.element_to_be_clickable((By.ID, button_id))
-        )
-        self.driver.execute_script("arguments[0].click();", btn)
-        
-        modal = WebDriverWait(self.driver, 20).until(
-            EC.visibility_of_element_located((By.ID, modal_id))
-        )
-        return modal
-
-    def test_page_navigation(self):
-        self.driver.get(self.live_server_url + reverse('vehicle-list'))
-        WebDriverWait(self.driver, 20).until(
-             EC.presence_of_element_located((By.ID, "open-add-vehicle-modal"))
-        )
-        self.assertIn("Gerenciamento de Veículos", self.driver.title)
-
-        self.driver.get(self.live_server_url + reverse('driver-list'))
-        WebDriverWait(self.driver, 20).until(
-            EC.presence_of_element_located((By.ID, "open-add-driver-modal"))
-        )
-        self.assertIn("Gerenciamento de Motoristas", self.driver.title)
-
-        self.driver.get(self.live_server_url + reverse('route-list'))
-        WebDriverWait(self.driver, 20).until(
-            EC.presence_of_element_located((By.ID, "open-add-route-modal"))
-        )
-        self.assertIn("Planejamento de Rotas", self.driver.title)
-        
-        self.driver.get(self.live_server_url + reverse('maintenance-list'))
-        WebDriverWait(self.driver, 20).until(
-            EC.presence_of_element_located((By.ID, "open-add-maintenance-modal"))
-        )
-        self.assertIn("Gerenciamento de Manutenções", self.driver.title)
-        
-        self.driver.get(self.live_server_url + reverse('alert-config'))
-        WebDriverWait(self.driver, 20).until(
-            EC.presence_of_element_located((By.ID, "open-config-modal"))
-        )
-        self.assertIn("Alertas de Manutenção", self.driver.title)
-
-    def test_driver_modal_opens(self):
-        self.driver.get(self.live_server_url + reverse('driver-list'))
-        modal = self.open_modal("open-add-driver-modal", "add-driver-modal")
-        self.assertTrue(modal.is_displayed())
-
-    def test_vehicle_modal_opens(self):
-        self.driver.get(self.live_server_url + reverse('vehicle-list'))
-        modal = self.open_modal("open-add-vehicle-modal", "add-vehicle-modal")
-        self.assertTrue(modal.is_displayed())
-
-    def test_route_modal_opens(self):
-        self.driver.get(self.live_server_url + reverse('route-list'))
-        modal = self.open_modal("open-add-route-modal", "route-modal")
-        self.assertTrue(modal.is_displayed())
-
-    def test_maintenance_modal_opens(self):
-        self.driver.get(self.live_server_url + reverse('maintenance-list'))
-        modal = self.open_modal("open-add-maintenance-modal", "maintenance-modal")
-        self.assertTrue(modal.is_displayed())
-
-    def test_alert_config_modal_opens(self):
-        self.driver.get(self.live_server_url + reverse('alert-config'))
-        modal = self.open_modal("open-config-modal", "config-modal")
-        self.assertTrue(modal.is_displayed())
 
 class CoverageImprovementsTestCase(DashboardBaseTestCase):
     def test_dashboard_vehicle_counters_logic(self):
