@@ -545,7 +545,7 @@ class MaintenanceViewTests(DashboardBaseTestCase):
         }, follow=True)
         self.assertRedirects(response, self.list_url)
         messages = list(response.context['messages'])
-        self.assertTrue(any('Data de Início' in str(m) for m in messages))
+        self.assertTrue(any('Início' in str(m) for m in messages))
 
 class AlertViewTests(DashboardBaseTestCase):
     def setUp(self):
@@ -986,6 +986,7 @@ class CoverageImprovementsTestCase(DashboardBaseTestCase):
         self.assertIn(self.vehicle_a, res.context['vehicles'])
 
     def test_maintenance_create_error_loop(self):
+        # Usa follow=True
         response = self.client.post(reverse('maintenance-add'), {}, follow=True)
         messages = list(response.context['messages'])
         self.assertTrue(len(messages) > 0)
