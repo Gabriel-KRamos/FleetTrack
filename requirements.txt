@@ -36,5 +36,5 @@ typing_extensions==4.15.0
 tzdata==2025.2
 urllib3==2.5.0
 gunicorn
-coverage
-selenium
+coverage>=7.0
+django-coverage-plugin>=3.0

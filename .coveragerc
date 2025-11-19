@@ -1,0 +1,16 @@
+[run]
+source = .
+plugins =
+    django_coverage_plugin
+omit =
+    */migrations/*
+    manage.py
+    */wsgi.py
+    */asgi.py
+    */apps.py
+    */__init__.py
+    */test*.py
+
+[report]
+show_missing = True
+fail_under = 80

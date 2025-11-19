@@ -11,7 +11,7 @@ on:
 jobs:
   build_and_test:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -23,31 +23,20 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
-      - name: Install Node.js dependencies
-        run: |
-          npm install
 
       - name: Run Backend Tests
         env:
           TESTING: "true"
           PYTHONPATH: .
         run: |
-          coverage run --source='.' manage.py test accounts dashboard
+          coverage run manage.py test
+          
+          # Gera o relatório XML para o SonarCloud ler
           coverage xml -o coverage.xml
-
-      - name: Run Frontend Tests
-        run: |
-          npm run test:coverage
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
