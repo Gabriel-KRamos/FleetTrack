@@ -1,0 +1,59 @@
+name: Deploy to GCP App Engine
+
+on:
+  push:
+    branches:
+      - code
+
+jobs:
+  deploy:
+    name: Deploy to App Engine
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Collect Static Files
+        run: |
+          export SECRET_KEY="${{ secrets.APP_SECRET_KEY }}"
+          export DEBUG="False"
+          export DB_NAME="${{ secrets.DB_NAME_SECRET }}"
+          export DB_USER="${{ secrets.DB_USER_SECRET }}"
+          export DB_PASSWORD="${{ secrets.DB_PASSWORD_SECRET }}"
+          export DB_HOST="${{ secrets.DB_HOST_SECRET }}"
+          export DB_PORT="${{ secrets.DB_PORT_SECRET }}"
+          export GOOGLE_MAPS_API_KEY="${{ secrets.GCP_MAPS_API_KEY }}"
+          python manage.py collectstatic --noinput
+
+      - name: Deploy to App Engine
+        uses: google-github-actions/deploy-appengine@v2
+        with:
+          deliverables: app.yaml
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          env_vars: |-
+            SECRET_KEY=${{ secrets.APP_SECRET_KEY }}
+            DEBUG=False
+            DB_NAME=${{ secrets.DB_NAME_SECRET }}
+            DB_USER=${{ secrets.DB_USER_SECRET }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD_SECRET }}
+            DB_HOST=${{ secrets.DB_HOST_SECRET }}
+            DB_PORT=${{ secrets.DB_PORT_SECRET }}
+            GOOGLE_MAPS_API_KEY=${{ secrets.GCP_MAPS_API_KEY }}
+            CLOUD_SQL_CONNECTION_NAME=${{ secrets.GCP_CLOUD_SQL_INSTANCE }}
