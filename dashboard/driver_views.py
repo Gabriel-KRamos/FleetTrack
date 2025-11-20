@@ -10,8 +10,15 @@ from .models import Driver, Route
 from accounts.models import UserProfile
 from .forms import DriverForm
 
+class DriverBaseView(LoginRequiredMixin, View):
+    def handle_form_errors(self, request, form):
+        for field, errors in form.errors.items():
+            for error in errors:
+                label = form.fields.get(field).label if field != '__all__' else ''
+                message = f"{label}: {error}" if label else str(error)
+                messages.error(request, message)
 
-class DriverListView(LoginRequiredMixin, View):
+class DriverListView(DriverBaseView):
     def get(self, request):
         profile = get_object_or_404(UserProfile, user=request.user)
         
@@ -36,7 +43,7 @@ class DriverListView(LoginRequiredMixin, View):
         }
         return render(request, 'dashboard/drivers.html', context)
 
-class DriverCreateView(LoginRequiredMixin, View):
+class DriverCreateView(DriverBaseView):
     def post(self, request):
         profile = get_object_or_404(UserProfile, user=request.user)
         form = DriverForm(request.POST)
@@ -46,14 +53,10 @@ class DriverCreateView(LoginRequiredMixin, View):
             new_driver.save()
             messages.success(request, 'Motorista adicionado com sucesso!')
         else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    label = form.fields.get(field).label if field != '__all__' else ''
-                    message = f"{label}: {error}" if label else str(error)
-                    messages.error(request, message)
+            self.handle_form_errors(request, form)
         return redirect('driver-list')
 
-class DriverUpdateView(LoginRequiredMixin, View):
+class DriverUpdateView(DriverBaseView):
     def post(self, request, pk):
         profile = get_object_or_404(UserProfile, user=request.user)
         driver = get_object_or_404(Driver, pk=pk, user_profile=profile)
@@ -62,11 +65,7 @@ class DriverUpdateView(LoginRequiredMixin, View):
             form.save()
             messages.success(request, 'Motorista atualizado com sucesso!')
         else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    label = form.fields.get(field).label if field != '__all__' else ''
-                    message = f"{label}: {error}" if label else str(error)
-                    messages.error(request, message)
+            self.handle_form_errors(request, form)
         return redirect('driver-list')
 
 class DriverDeactivateView(LoginRequiredMixin, View):
@@ -89,22 +88,28 @@ class DriverRouteHistoryView(LoginRequiredMixin, View):
             total_distance=Sum(Coalesce('actual_distance', 'estimated_distance')),
             total_routes=Count('id'), total_toll=Sum('estimated_toll_cost')
         )
+        
         total_distance = float(stats['total_distance'] or 0.0)
         total_routes = stats['total_routes'] or 0
         total_toll_cost = float(stats['total_toll'] or 0.0)
-        total_fuel_cost = 0.0
+        
         history_list = []
+        total_fuel_cost = 0.0
+        
         for r in routes:
-            route_fuel_cost = float(r.estimated_fuel_cost or 0.0)
-            total_fuel_cost += route_fuel_cost
-            route_toll_cost = float(r.estimated_toll_cost or 0.0)
+            route_fuel = float(r.estimated_fuel_cost or 0.0)
+            total_fuel_cost += route_fuel
+            
             history_list.append({
-                'start_location': r.start_location, 'end_location': r.end_location,
+                'start_location': r.start_location, 
+                'end_location': r.end_location,
                 'end_time': r.end_time.strftime('%d/%m/%Y %H:%M'),
                 'distance': float(r.actual_distance or r.estimated_distance or 0.0),
-                'fuel_cost': route_fuel_cost, 'toll_cost': route_toll_cost,
+                'fuel_cost': route_fuel, 
+                'toll_cost': float(r.estimated_toll_cost or 0.0),
                 'vehicle_plate': r.vehicle.plate if r.vehicle else 'N/A',
             })
+            
         return JsonResponse({
             'history': history_list,
             'stats': {

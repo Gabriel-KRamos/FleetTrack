@@ -8,25 +8,16 @@ from accounts.models import UserProfile
 from .forms import AlertConfigurationFormSet
 from .services import get_vehicle_alerts
 
-
 class AlertConfigView(LoginRequiredMixin, View):
-    def get(self, request):
-        profile = get_object_or_404(UserProfile, user=request.user)
-        
-        for choice_val, choice_disp in Maintenance.SERVICE_CHOICES_ALERT_CONFIG:
-            AlertConfiguration.objects.get_or_create(
-                user_profile=profile,
-                service_type=choice_val,
-                defaults={'priority': 'medium'}
-                )
+    def _get_alert_context(self, request, profile, formset=None):
+        if not formset:
+            queryset = AlertConfiguration.objects.filter(user_profile=profile).order_by('service_type')
+            formset = AlertConfigurationFormSet(queryset=queryset)
 
-        queryset = AlertConfiguration.objects.filter(user_profile=profile).all().order_by('service_type')
-        formset = AlertConfigurationFormSet(queryset=queryset)
-        
         all_alerts = get_vehicle_alerts(profile)
-
         total_alerts = len(all_alerts)
         priority_counts = Counter(alert.priority for alert in all_alerts)
+        
         stats = {
             'total': total_alerts,
             'high': priority_counts.get('high', 0),
@@ -46,22 +37,33 @@ class AlertConfigView(LoginRequiredMixin, View):
                    search_query_lower in alert.vehicle.model.lower() or \
                    search_query_lower in alert.service_type.lower()
             ]
+        
         if priority_filter:
             filtered_alerts = [
                 alert for alert in filtered_alerts
                 if alert.priority == priority_filter
             ]
 
-        priority_choices = AlertConfiguration.PRIORITY_CHOICES
-
-        context = {
+        return {
             'formset': formset,
             'alerts': filtered_alerts,
             'search_query': search_query,
             'priority_filter': priority_filter,
-            'priority_choices': priority_choices,
+            'priority_choices': AlertConfiguration.PRIORITY_CHOICES,
             'stats': stats,
-            }
+        }
+
+    def get(self, request):
+        profile = get_object_or_404(UserProfile, user=request.user)
+        
+        for choice_val, _ in Maintenance.SERVICE_CHOICES_ALERT_CONFIG:
+            AlertConfiguration.objects.get_or_create(
+                user_profile=profile,
+                service_type=choice_val,
+                defaults={'priority': 'medium'}
+            )
+
+        context = self._get_alert_context(request, profile)
         return render(request, 'dashboard/alert_config.html', context)
 
     def post(self, request):
@@ -74,44 +76,6 @@ class AlertConfigView(LoginRequiredMixin, View):
             messages.success(request, 'Configurações de alerta salvas com sucesso!')
             return redirect('alert-config')
         else:
-            all_alerts = get_vehicle_alerts(profile)
-
-            total_alerts = len(all_alerts)
-            priority_counts = Counter(alert.priority for alert in all_alerts)
-            stats = {
-                'total': total_alerts,
-                'high': priority_counts.get('high', 0),
-                'medium': priority_counts.get('medium', 0),
-                'low': priority_counts.get('low', 0),
-            }
-
-            search_query = request.GET.get('search', '')
-            priority_filter = request.GET.get('priority', '')
-
-            filtered_alerts = all_alerts
-            if search_query:
-                search_query_lower = search_query.lower()
-                filtered_alerts = [
-                    alert for alert in filtered_alerts
-                    if search_query_lower in alert.vehicle.plate.lower() or \
-                       search_query_lower in alert.vehicle.model.lower() or \
-                       search_query_lower in alert.service_type.lower()
-                ]
-            if priority_filter:
-                filtered_alerts = [
-                    alert for alert in filtered_alerts
-                    if alert.priority == priority_filter
-                ]
-
-            priority_choices = AlertConfiguration.PRIORITY_CHOICES
-
             messages.error(request, 'Erro ao salvar as configurações. Verifique os campos.')
-            context = {
-                'formset': formset,
-                'alerts': filtered_alerts,
-                'search_query': search_query,
-                'priority_filter': priority_filter,
-                'priority_choices': priority_choices,
-                'stats': stats,
-                }
+            context = self._get_alert_context(request, profile, formset)
             return render(request, 'dashboard/alert_config.html', context)
