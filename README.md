@@ -39,7 +39,6 @@ O sistema conta com diversos módulos para gestão completa:
 
 O projeto segue a arquitetura **MVC (Model-View-Controller)** e utiliza o modelo **C4** para documentação arquitetural.
 
-*(Se tiveres as imagens dos diagramas na pasta do projeto, podes adicioná-las aqui)*
 ## 🚀 Como executar o projeto
 
 ### Pré-requisitos
