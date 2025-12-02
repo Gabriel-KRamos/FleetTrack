@@ -39,6 +39,11 @@ O sistema conta com diversos módulos para gestão completa:
 
 O projeto segue a arquitetura **MVC (Model-View-Controller)** e utiliza o modelo **C4** para documentação arquitetural.
 
+## 🔨 Credenciais de Testes
+
+Usuario: demoday@gmail.com
+Senha: demodayTeste
+
 ## 🚀 Como executar o projeto
 
 ### Pré-requisitos
